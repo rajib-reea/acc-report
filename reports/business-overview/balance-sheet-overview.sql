@@ -57,6 +57,17 @@ SELECT
     CASE 
         WHEN total_assets = (total_liabilities + total_equity) THEN 'Balanced'
 
+ day-based alogithm:
+  alanceSheetOverview(start_date, end_date)
+Retrieve total assets (Cash, Inventory, Accounts Receivable, Fixed Assets) for each day.
+Retrieve total liabilities (Loans, Accounts Payable, Other Debts) for each day.
+Retrieve total equity (Owner’s Capital, Retained Earnings) for each day.
+Validate the balance equation per day:
+Total Assets = Total Liabilities + Total Equity
+If balanced, generate the report showing daily totals.
+Return the day-based balance sheet overview.
+
+  sql:
   -- Define the date range for the balance sheet overview
 \set start_date '2025-01-01'
 \set end_date '2025-01-10'

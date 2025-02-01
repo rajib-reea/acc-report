@@ -29,61 +29,69 @@ Algorithm:
   SQL:
   
 WITH DateSeries AS (
+    -- Generate a date range from Jan 1 to Jan 10, 2025
     SELECT generate_series(
         '2025-01-01'::DATE,
         '2025-01-10'::DATE,
         INTERVAL '1 day'
     )::DATE AS transaction_date
 ),
-Inflows AS (
-    SELECT transaction_date, COALESCE(SUM(amount), 0) AS inflow
+-- Opening Cash Balance (from previous period)
+OpeningBalance AS (
+    SELECT COALESCE(SUM(amount), 0) AS opening_cash
     FROM acc_transactions
-    WHERE transaction_date BETWEEN '2025-01-01' AND '2025-01-10'
-      AND is_active = TRUE 
-      AND LOWER(category) IN ('sales', 'subscriptions', 'service income', 'loans', 'investments', 'owner capital')
-    GROUP BY transaction_date
-),
-Outflows AS (
-    SELECT transaction_date, COALESCE(SUM(amount), 0) AS outflow
-    FROM acc_transactions transaction_date 
-    WHERE transaction_date BETWEEN '2025-01-01' AND '2025-01-10'
-      AND is_active = TRUE 
-      AND LOWER(category) IN ('operating expenses', 'rent', 'utilities', 'marketing', 'professional services', 'salaries', 'insurance', 'taxes', 'loan payments', 'dividends', 'taxes payable', 'credit lines')
-    GROUP BY transaction_date
-),
-NetCashFlow AS (
-    SELECT D.transaction_date, 
-           COALESCE(I.inflow, 0) AS inflows, 
-           COALESCE(O.outflow, 0) AS outflows,
-           COALESCE(I.inflow, 0) - COALESCE(O.outflow, 0) AS net_cash_flow
-    FROM DateSeries D
-    LEFT JOIN Inflows I ON D.transaction_date = I.transaction_date
-    LEFT JOIN Outflows O ON D.transaction_date = O.transaction_date
-),
-InitialOpeningBalance AS (
-    SELECT COALESCE(SUM(amount), 0) AS opening_balance
-    FROM acc_transactions
-    WHERE transaction_date < '2025-01-01' 
-      AND transaction_type = 'revenue' 
+    WHERE transaction_date < '2025-01-01'
       AND is_active = TRUE
 ),
-ClosingBalance AS (
-    SELECT transaction_date, 
-           SUM(net_cash_flow) OVER (ORDER BY transaction_date) + (SELECT opening_balance FROM InitialOpeningBalance) AS closing_balance
-    FROM NetCashFlow
+-- Categorizing transactions (Inflows vs Outflows)
+Inflows AS (
+    SELECT transaction_date, category, SUM(amount) AS total_inflow
+    FROM acc_transactions
+    WHERE transaction_date BETWEEN '2025-01-01' AND '2025-01-10'
+      AND is_active = TRUE
+      AND LOWER(category) IN ('sales', 'subscriptions', 'service income', 'loans', 'investments', 'owner capital')  -- Inflows
+    GROUP BY transaction_date, category
 ),
-FinalReport AS (
-    SELECT N.transaction_date, 
-           LAG(closing_balance, 1, (SELECT opening_balance FROM InitialOpeningBalance)) OVER (ORDER BY N.transaction_date) AS opening_balance,
-           N.inflows, N.outflows, N.net_cash_flow, 
-           C.closing_balance,
-           (LAG(closing_balance, 1, (SELECT opening_balance FROM InitialOpeningBalance)) OVER (ORDER BY N.transaction_date) + N.net_cash_flow) AS expected_closing_balance
-    FROM NetCashFlow N
-    JOIN ClosingBalance C ON N.transaction_date = C.transaction_date
+Outflows AS (
+    SELECT transaction_date, category, SUM(amount) AS total_outflow
+    FROM acc_transactions
+    WHERE transaction_date BETWEEN '2025-01-01' AND '2025-01-10'
+      AND is_active = TRUE
+      AND LOWER(category) IN ('operating expenses', 'rent', 'utilities', 'marketing', 
+                              'professional services', 'salaries', 'insurance', 'taxes')  -- Outflows
+    GROUP BY transaction_date, category
+),
+-- Daily Net Cash Movement
+DailyNetCashFlow AS (
+    SELECT 
+        ds.transaction_date,
+        COALESCE(SUM(i.total_inflow), 0) AS total_inflows,
+        COALESCE(SUM(o.total_outflow), 0) AS total_outflows
+    FROM DateSeries ds
+    LEFT JOIN Inflows i ON ds.transaction_date = i.transaction_date
+    LEFT JOIN Outflows o ON ds.transaction_date = o.transaction_date
+    GROUP BY ds.transaction_date
+),
+-- Daily Closing Cash Calculation
+DailyClosingBalance AS (
+    SELECT 
+        dnc.transaction_date,
+        (SELECT opening_cash FROM OpeningBalance) + 
+        SUM(dnc.total_inflows - dnc.total_outflows) 
+        OVER (ORDER BY dnc.transaction_date) AS closing_cash
+    FROM DailyNetCashFlow dnc
 )
-SELECT transaction_date, opening_balance, inflows, outflows, net_cash_flow, closing_balance, expected_closing_balance,
-       COALESCE(expected_closing_balance - closing_balance, 0.00) AS invariant_mismatch
-FROM FinalReport
-ORDER BY transaction_date;
+-- Final Daily Report
+SELECT 
+    dnc.transaction_date,
+    (SELECT opening_cash FROM OpeningBalance) AS opening_cash,
+    dnc.total_inflows,
+    dnc.total_outflows,
+    (dnc.total_inflows - dnc.total_outflows) AS net_cash_change,
+    dcb.closing_cash
+FROM DailyNetCashFlow dnc
+JOIN DailyClosingBalance dcb ON dnc.transaction_date = dcb.transaction_date
+ORDER BY dnc.transaction_date;
+
 
 

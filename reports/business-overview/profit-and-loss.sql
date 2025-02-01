@@ -13,7 +13,7 @@ WITH DateSeries AS (
     -- Generate a date range dynamically
     SELECT generate_series(
         '2025-01-01'::DATE,  -- Start Date
-        '2025-01-31'::DATE,  -- End Date
+        '2025-01-10'::DATE,  -- End Date
         INTERVAL '1 day'
     )::DATE AS transaction_date
 ),

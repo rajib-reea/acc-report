@@ -90,3 +90,4 @@ FROM NetCashFlow N
 LEFT JOIN OpeningBalance O ON N.transaction_date = O.transaction_date
 LEFT JOIN ClosingBalance C ON N.transaction_date = C.transaction_date
 ORDER BY N.transaction_date;
+

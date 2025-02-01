@@ -1,3 +1,6 @@
+Note: Opening Equity:= Opening Equity + Adjusted Equity (for all rows except the first).
+  Its not implemented yet
+  
 | #  | transaction_date | opening_equity | net_income | retained_earnings | new_investments | dividends_paid | adjusted_equity | invariant_check |
 |----|------------------|----------------|------------|-------------------|-----------------|----------------|-----------------|-----------------|
 | 1  | 2025-01-01       | 0              | 3000.00    | 0                 | 0               | 0              | 3000.00         | 0.00            |

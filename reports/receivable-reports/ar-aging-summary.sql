@@ -1,48 +1,66 @@
 Algorithm:
-  SalesPerformanceBySalesperson(startDate, endDate):
-  1. Retrieve sales transactions within the specified date range (startDate to endDate).
-  2. Group the transactions by salesperson (Salesperson ID or Name).
-  3. Calculate total sales for each salesperson:
-     Total Sales = Sum of (Quantity * Price) for each salesperson.
-  4. Optionally calculate additional metrics (e.g., number of transactions or total quantity sold).
-  5. Sort the salespeople by total sales in descending order (optional).
-  6. Validate the totals (check for negative or invalid amounts).
-  7. Store the report for each salesperson and return the results.
+  
+  AR_Aging_Summary_Report(startDate, endDate):
+  1. Retrieve accounts receivable (AR) transactions within the specified date range (startDate to endDate).
+  2. Group the transactions by customer.
+  3. Calculate the aging of receivables:
+     - Group AR balances into aging categories (e.g., 0-30 days, 31-60 days, 61-90 days, 91+ days).
+  4. Calculate the total amount for each aging category.
+  5. Validate the amounts (check for negative or invalid balances).
+  6. Store the report by customer and aging category and return the results.
 
   SQL:
 -- Define the date parameters
 \set startDate '2025-01-01'
 \set endDate '2025-12-31'
 
-WITH SalesData AS (
-    -- Step 1: Retrieve sales transactions within the specified date range
+WITH ARTransactions AS (
+    -- Step 1: Retrieve accounts receivable transactions within the specified date range
     SELECT 
-        salesperson_id,  -- Replace with appropriate column for salesperson identification
-        SUM(quantity * price) AS total_sales,  -- Total sales for each transaction
-        COUNT(*) AS total_transactions,        -- Number of transactions for the salesperson (optional metric)
-        SUM(quantity) AS total_quantity_sold  -- Total quantity sold by the salesperson (optional metric)
+        customer_id,  -- Replace with the appropriate column for customer identification
+        transaction_date,
+        amount,  -- The amount for each AR transaction
+        (CURRENT_DATE - transaction_date) AS days_outstanding  -- Calculate the number of days outstanding
     FROM acc_transactions
-    WHERE transaction_type = 'revenue' -- Sales transactions assumed to have 'revenue' as transaction type
+    WHERE transaction_type = 'revenue' -- Accounts receivable are typically revenue transactions
       AND transaction_date BETWEEN :startDate AND :endDate
       AND is_active = TRUE
-    GROUP BY salesperson_id
 ),
-ValidatedSales AS (
-    -- Step 6: Validate the totals (exclude invalid sales, e.g., negative sales or quantity)
+AgingCategories AS (
+    -- Step 3: Group AR balances into aging categories based on the number of days outstanding
     SELECT 
-        salesperson_id, 
-        total_sales,
-        total_transactions,
-        total_quantity_sold
-    FROM SalesData
-    WHERE total_sales >= 0  -- Only consider valid sales (non-negative sales)
-      AND total_quantity_sold >= 0 -- Only consider valid quantity sold (non-negative quantity)
+        customer_id,
+        CASE
+            WHEN days_outstanding BETWEEN 0 AND 30 THEN '0-30 days'
+            WHEN days_outstanding BETWEEN 31 AND 60 THEN '31-60 days'
+            WHEN days_outstanding BETWEEN 61 AND 90 THEN '61-90 days'
+            WHEN days_outstanding > 90 THEN '91+ days'
+            ELSE 'Invalid'  -- This can catch any unexpected data (e.g., negative days)
+        END AS aging_category,
+        SUM(amount) AS total_amount  -- Calculate the total AR amount in each category
+    FROM ARTransactions
+    GROUP BY customer_id, aging_category
+),
+ValidatedAging AS (
+    -- Step 5: Validate the amounts (exclude negative or invalid balances)
+    SELECT 
+        customer_id,
+        aging_category,
+        total_amount
+    FROM AgingCategories
+    WHERE total_amount >= 0  -- Only include valid balances (no negative amounts)
 )
--- Step 5: Sort the salespeople by total sales in descending order (optional)
+-- Step 6: Store and return the report by customer and aging category
 SELECT 
-    salesperson_id,
-    total_sales,
-    total_transactions,
-    total_quantity_sold
-FROM ValidatedSales
-ORDER BY total_sales DESC;  -- Can change this to 'total_transactions DESC' to sort by number of transactions
+    customer_id,
+    aging_category,
+    total_amount
+FROM ValidatedAging
+ORDER BY customer_id, 
+         CASE 
+             WHEN aging_category = '0-30 days' THEN 1
+             WHEN aging_category = '31-60 days' THEN 2
+             WHEN aging_category = '61-90 days' THEN 3
+             WHEN aging_category = '91+ days' THEN 4
+             ELSE 5  -- Handling 'Invalid' category if any
+         END;

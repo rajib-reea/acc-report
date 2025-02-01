@@ -13,7 +13,6 @@ Generate the report with a daily breakdown of the cash flow.
 
 
   SQL:
--- Invariant Check: Ensure Closing Cash Balance = Opening Cash Balance + Net Cash Flow
 WITH 
 DateSeries AS (
     SELECT generate_series(
@@ -22,6 +21,7 @@ DateSeries AS (
         INTERVAL '1 day'
     )::DATE AS transaction_date
 ),
+-- Opening Cash Balance (for the first day)
 OpeningBalance AS (
     SELECT 
         transaction_date,
@@ -32,67 +32,61 @@ OpeningBalance AS (
       AND is_active = TRUE
     GROUP BY transaction_date
 ),
+-- Cash inflows for each day: Sales, Loans, Investments
 Inflows AS (
     SELECT 
         transaction_date,
-        COALESCE(SUM(amount), 0) AS total_inflow
+        COALESCE(SUM(amount), 0) AS inflow
     FROM acc_transactions
-    WHERE transaction_date BETWEEN '2025-01-01' AND '2025-01-10'
-      AND is_active = TRUE
+    WHERE 
+      is_active = TRUE
       AND LOWER(category) IN ('sales', 'loans', 'investments')  -- Categories for inflows
     GROUP BY transaction_date
 ),
+-- Cash outflows for each day: Expenses, Loan Payments, Dividends
 Outflows AS (
     SELECT 
         transaction_date,
-        COALESCE(SUM(amount), 0) AS total_outflow
+        COALESCE(SUM(amount), 0) AS outflow
     FROM acc_transactions
-    WHERE transaction_date BETWEEN '2025-01-01' AND '2025-01-10'
-      AND is_active = TRUE
+    WHERE 
+      is_active = TRUE
       AND LOWER(category) IN ('expenses', 'loan payments', 'dividends')  -- Categories for outflows
     GROUP BY transaction_date
 ),
+-- Net cash flow calculation for each day
 NetCashFlow AS (
     SELECT 
         D.transaction_date,
-        COALESCE(I.total_inflow, 0) AS total_inflows,
-        COALESCE(O.total_outflow, 0) AS total_outflows,
-        (COALESCE(I.total_inflow, 0) - COALESCE(O.total_outflow, 0)) AS net_cash_flow
+        COALESCE(I.inflow, 0) AS inflows,
+        COALESCE(O.outflow, 0) AS outflows,
+        (COALESCE(I.inflow, 0) - COALESCE(O.outflow, 0)) AS net_cash_flow
     FROM DateSeries D
     LEFT JOIN Inflows I ON D.transaction_date = I.transaction_date
     LEFT JOIN Outflows O ON D.transaction_date = O.transaction_date
 ),
+-- Closing Cash Balance for each day
 ClosingBalance AS (
     SELECT 
         N.transaction_date,
+        -- Fetch the opening balance from OpeningBalance or default to 0 if none exists
         (SELECT COALESCE(opening_balance, 0) FROM OpeningBalance WHERE transaction_date = N.transaction_date) 
         + N.net_cash_flow AS closing_balance
     FROM NetCashFlow N
-),
--- Invariant Check: Ensure Closing Cash Balance = Opening Cash Balance + Net Cash Flow
-InvariantCheck AS (
-    SELECT 
-        N.transaction_date,
-        O.opening_balance,
-        N.net_cash_flow,
-        C.closing_balance,
-        (O.opening_balance + N.net_cash_flow) AS expected_closing_balance,
-        CASE
-            WHEN C.closing_balance = (O.opening_balance + N.net_cash_flow) THEN 'Valid'
-            ELSE 'Invalid'
-        END AS invariant_status
-    FROM NetCashFlow N
-    LEFT JOIN OpeningBalance O ON N.transaction_date = O.transaction_date
-    LEFT JOIN ClosingBalance C ON N.transaction_date = C.transaction_date
 )
--- Final Report with Invariant Status
+-- Final Report: Day-wise breakdown of Cash Flow
 SELECT 
-    I.transaction_date,
-    I.opening_balance,
-    I.net_cash_flow,
-    I.closing_balance,
-    I.expected_closing_balance,
-    I.invariant_status
-FROM InvariantCheck I
-ORDER BY I.transaction_date;
-
+    N.transaction_date,
+    COALESCE(O.opening_balance, 0) AS opening_balance,
+    N.inflows,
+    N.outflows,
+    N.net_cash_flow,
+    COALESCE(C.closing_balance, 0) AS closing_balance,  -- Ensure closing balance is not null
+    -- Calculate the expected closing balance (opening_balance + net_cash_flow)
+    (COALESCE(O.opening_balance, 0) + N.net_cash_flow) AS expected_closing_balance,
+    -- Calculate invariant mismatch (closing_balance - expected_closing_balance)
+    COALESCE(C.closing_balance, 0) - (COALESCE(O.opening_balance, 0) + N.net_cash_flow) AS invariant_mismatch
+FROM NetCashFlow N
+LEFT JOIN OpeningBalance O ON N.transaction_date = O.transaction_date
+LEFT JOIN ClosingBalance C ON N.transaction_date = C.transaction_date
+ORDER BY N.transaction_date;

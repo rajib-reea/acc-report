@@ -1,0 +1,8 @@
+After installing docker desktop for mac run:
+nano ~/.zshrc
+ and add the following line at the end of file
+export PATH="/Applications/Docker.app/Contents/Resources/bin:$PATH"
+source ~/.zshrc
+
+
+docker exec -it postgres_db psql -U postgres postgres

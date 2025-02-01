@@ -1,5 +1,3 @@
-# Profit and Loss Summary (Daily Basis)
-
 | #  | Transaction Date | Revenue  | Expenses | Net Profit | Invariant Mismatch |
 |----|----------------|----------|----------|------------|--------------------|
 | 1  | 2025-01-01    | 3000.00  | 0.00     | 3000.00    | 0.00               |

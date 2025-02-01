@@ -13,6 +13,7 @@ Generate the report with a daily breakdown of the cash flow.
 
 
   SQL:
+  
 WITH 
 DateSeries AS (
     SELECT generate_series(
@@ -32,7 +33,7 @@ OpeningBalance AS (
       AND is_active = TRUE
     GROUP BY transaction_date
 ),
--- Cash inflows for each day: Sales, Loans, Investments
+-- Cash inflows for each day: Sales, Loans, Investments, Owner Capital
 Inflows AS (
     SELECT 
         transaction_date,
@@ -40,10 +41,10 @@ Inflows AS (
     FROM acc_transactions
     WHERE 
       is_active = TRUE
-      AND LOWER(category) IN ('sales', 'loans', 'investments')  -- Categories for inflows
+      AND LOWER(category) IN ('sales', 'subscriptions', 'service income', 'loans', 'investments', 'owner capital')  -- Categories for inflows
     GROUP BY transaction_date
 ),
--- Cash outflows for each day: Expenses, Loan Payments, Dividends
+-- Cash outflows for each day: Expenses, Loan Payments, Dividends, Taxes Payable, Credit Lines
 Outflows AS (
     SELECT 
         transaction_date,
@@ -51,7 +52,7 @@ Outflows AS (
     FROM acc_transactions
     WHERE 
       is_active = TRUE
-      AND LOWER(category) IN ('expenses', 'loan payments', 'dividends')  -- Categories for outflows
+      AND LOWER(category) IN ('operating expenses', 'rent', 'utilities', 'marketing', 'professional services', 'salaries', 'insurance', 'taxes', 'loan payments', 'dividends', 'taxes payable', 'credit lines')  -- Categories for outflows
     GROUP BY transaction_date
 ),
 -- Net cash flow calculation for each day

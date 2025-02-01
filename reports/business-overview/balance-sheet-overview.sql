@@ -39,13 +39,13 @@ DailyAssets AS (
                 WHEN LOWER(category) IN ('sales', 'subscriptions', 'service income') THEN amount
                 ELSE 0 
             END
-        ), 0) AS income,  -- renamed from cash_earned
+        ), 0) AS income,
         COALESCE(SUM(
             CASE 
                 WHEN LOWER(category) IN ('operating expenses', 'rent', 'utilities', 'marketing', 'professional services', 'salaries', 'insurance', 'taxes') THEN amount
                 ELSE 0 
             END
-        ), 0) AS expenditure,  -- renamed from cash_expended
+        ), 0) AS expenditure,
         COALESCE(SUM(
             CASE 
                 WHEN LOWER(category) = 'inventory' THEN amount
@@ -69,7 +69,7 @@ DailyAssets AS (
                 WHEN LOWER(category) = 'intangible assets' THEN amount
                 ELSE 0 
             END
-        ), 0) AS intangible_assets  -- New category for intangible assets
+        ), 0) AS intangible_assets
     FROM acc_transactions
     WHERE is_active = TRUE
     GROUP BY transaction_date
@@ -102,14 +102,14 @@ SELECT
     COALESCE(dl.loans, 0) AS loans,
     COALESCE(dl.ap, 0) AS ap,
     COALESCE(dl.other_debts, 0) AS other_debts,
-    COALESCE(dl.taxes_payable, 0) AS taxes_payable,  -- New column for taxes payable
-    COALESCE(dl.credit_lines, 0) AS credit_lines,  -- New column for credit lines
-    COALESCE(da.income, 0) AS income,  -- renamed from cash_earned
-    COALESCE(da.expenditure, 0) AS expenditure,  -- renamed from cash_expended
+    COALESCE(dl.taxes_payable, 0) AS taxes_payable,
+    COALESCE(dl.credit_lines, 0) AS credit_lines,
+    COALESCE(da.income, 0) AS income,
+    COALESCE(da.expenditure, 0) AS expenditure,
     COALESCE(da.inventory, 0) AS inventory,
     COALESCE(da.ar, 0) AS ar,
     COALESCE(da.fixed_assets, 0) AS fixed_assets,
-    COALESCE(da.intangible_assets, 0) AS intangible_assets,  -- New column for intangible assets
+    COALESCE(da.intangible_assets, 0) AS intangible_assets,
     COALESCE(de.owner_capital, 0) AS owner_capital,
     COALESCE(bv.equity, 0) AS equity,
     COALESCE(bv.assets, 0) AS assets,
@@ -120,4 +120,3 @@ LEFT JOIN DailyAssets da ON ds.transaction_date = da.transaction_date
 LEFT JOIN DailyEquity de ON ds.transaction_date = de.transaction_date
 LEFT JOIN BalanceValidation bv ON ds.transaction_date = bv.transaction_date
 ORDER BY ds.transaction_date;
-

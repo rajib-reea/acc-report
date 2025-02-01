@@ -35,79 +35,49 @@ WITH DateSeries AS (
         INTERVAL '1 day'
     )::DATE AS transaction_date
 ),
--- Opening Cash Balance (from previous period)
-OpeningBalance AS (
-    SELECT COALESCE(SUM(amount), 0) AS opening_cash
+EquityData AS (
+    -- Step 1: Retrieve the opening equity balance for each day (cumulative before the day)
+    SELECT 
+        D.transaction_date,  -- Explicitly qualify the column with the table alias
+        COALESCE(SUM(CASE WHEN LOWER(category) = 'equity' AND acc_transactions.transaction_date < D.transaction_date THEN amount ELSE 0 END), 0) AS opening_equity
     FROM acc_transactions
-    WHERE transaction_date < '2025-01-01'
-      AND is_active = TRUE
+    CROSS JOIN DateSeries D  -- Use CROSS JOIN to generate all combinations
+    WHERE is_active = TRUE
+    GROUP BY D.transaction_date  -- Group by the date from DateSeries
 ),
--- Categorizing transactions (Inflows vs Outflows)
-Inflows AS (
-    SELECT transaction_date, category, SUM(amount) AS total_inflow
+EquityChanges AS (
+    -- Step 2: Retrieve changes in equity: Retained Earnings, New Investments, Dividends Paid for each day
+    SELECT 
+        transaction_date,
+        COALESCE(SUM(CASE WHEN LOWER(category) = 'retained earnings' THEN amount ELSE 0 END), 0) AS retained_earnings,
+        COALESCE(SUM(CASE WHEN LOWER(category) = 'new investments' THEN amount ELSE 0 END), 0) AS new_investments,
+        COALESCE(SUM(CASE WHEN LOWER(category) = 'dividends paid' THEN amount ELSE 0 END), 0) AS dividends_paid
     FROM acc_transactions
     WHERE transaction_date BETWEEN '2025-01-01' AND '2025-01-10'
       AND is_active = TRUE
-      AND LOWER(category) IN ('sales', 'subscriptions', 'service income', 'loans', 'investments', 'owner capital')  -- Inflows
-    GROUP BY transaction_date, category
+    GROUP BY transaction_date
 ),
-Outflows AS (
-    SELECT transaction_date, category, SUM(amount) AS total_outflow
-    FROM acc_transactions
-    WHERE transaction_date BETWEEN '2025-01-01' AND '2025-01-10'
-      AND is_active = TRUE
-      AND LOWER(category) IN ('operating expenses', 'rent', 'utilities', 'marketing', 
-                              'professional services', 'salaries', 'insurance', 'taxes')  -- Outflows
-    GROUP BY transaction_date, category
-),
--- Daily Net Cash Movement
-DailyNetCashFlow AS (
+EquityMovement AS (
+    -- Step 3: Calculate equity movements for each day
     SELECT 
-        ds.transaction_date,
-        COALESCE(SUM(i.total_inflow), 0) AS total_inflows,
-        COALESCE(SUM(o.total_outflow), 0) AS total_outflows
-    FROM DateSeries ds
-    LEFT JOIN Inflows i ON ds.transaction_date = i.transaction_date
-    LEFT JOIN Outflows o ON ds.transaction_date = o.transaction_date
-    GROUP BY ds.transaction_date
-),
--- Daily Closing Cash Calculation
-DailyClosingBalance AS (
-    SELECT 
-        dnc.transaction_date,
-        (SELECT opening_cash FROM OpeningBalance) + 
-        SUM(dnc.total_inflows - dnc.total_outflows) 
-        OVER (ORDER BY dnc.transaction_date) AS closing_cash
-    FROM DailyNetCashFlow dnc
-),
--- Final Daily Report with Invariant Check
-FinalReport AS (
-    SELECT 
-        dnc.transaction_date,
-        (SELECT opening_cash FROM OpeningBalance) AS opening_cash,
-        dnc.total_inflows,
-        dnc.total_outflows,
-        (dnc.total_inflows - dnc.total_outflows) AS net_cash_change,
-        dcb.closing_cash,
-        -- Calculate the expected closing balance
-        (SELECT opening_cash FROM OpeningBalance) + 
-        SUM(dnc.total_inflows - dnc.total_outflows) 
-        OVER (ORDER BY dnc.transaction_date) AS expected_closing_cash
-    FROM DailyNetCashFlow dnc
-    JOIN DailyClosingBalance dcb ON dnc.transaction_date = dcb.transaction_date
+        D.transaction_date,
+        E.opening_equity,
+        COALESCE(C.retained_earnings, 0) AS retained_earnings,
+        COALESCE(C.new_investments, 0) AS new_investments,
+        COALESCE(C.dividends_paid, 0) AS dividends_paid,
+        -- Adjusted Equity = Opening Equity + Retained Earnings + New Investments - Dividends Paid
+        E.opening_equity + COALESCE(C.retained_earnings, 0) + COALESCE(C.new_investments, 0) - COALESCE(C.dividends_paid, 0) AS adjusted_equity
+    FROM DateSeries D
+    LEFT JOIN EquityData E ON D.transaction_date = E.transaction_date
+    LEFT JOIN EquityChanges C ON D.transaction_date = C.transaction_date
 )
--- Add invariant_mismatch check
+-- Step 4: Return the daily equity movement report
 SELECT 
     transaction_date,
-    opening_cash,
-    total_inflows,
-    total_outflows,
-    net_cash_change,
-    closing_cash,
-    expected_closing_cash,
-    CASE
-        WHEN closing_cash != expected_closing_cash THEN COALESCE(expected_closing_cash- closing_cash, 0.00)
-        ELSE 0.00
-    END AS invariant_check
-FROM FinalReport
+    opening_equity,
+    retained_earnings,
+    new_investments,
+    dividends_paid,
+    adjusted_equity
+FROM EquityMovement
 ORDER BY transaction_date;

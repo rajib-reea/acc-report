@@ -1,119 +1,92 @@
 Algorithm:
   
-Budget_vs_Actuals_Report(startDate, endDate):
-  1. Retrieve the planned budget data for the specified date range (startDate to endDate):
-     - Budget data includes planned amounts for each category (e.g., revenue, expenses) for the period.
-  2. Retrieve the actual financial data for the same date range:
-     - Actuals data includes the actual amounts spent or earned for each category during the period.
-  3. Compare the budgeted amounts to the actual amounts for each category:
-     - For each category, calculate the variance:
-       - Variance = Actuals - Budgeted Amount.
-  4. For each category, calculate the percentage variance:
-     - Percentage Variance = (Variance / Budgeted Amount) * 100.
-  5. Optionally, categorize the results by type (e.g., revenue, expenses, profit, etc.).
-  6. Optionally, calculate the cumulative totals for both budgeted and actual amounts:
-     - Total Budget = Sum of all budgeted amounts for the period.
-     - Total Actuals = Sum of all actual amounts for the period.
-     - Cumulative Variance = Total Actuals - Total Budget.
-  7. Identify any categories where the variance is significant (e.g., over-budget or under-budget by a certain threshold).
-  8. Validate the budget and actual data (ensure no missing or incorrect entries).
-  9. Store the Budget vs. Actuals report and return the results:
-     - Include a breakdown of each category’s budgeted, actual, variance, and percentage variance.
-     - Optionally, include a summary of total budget, total actuals, and overall variance.
+Realized_Foreign_Exchange_Gains_Losses(startDate, endDate):
+  1. Retrieve all foreign exchange (FX) transactions within the specified date range (startDate to endDate):
+     - These transactions could include payments, receipts, or conversions involving foreign currencies.
+  2. For each FX transaction, extract the following details:
+     - Transaction date
+     - Original currency amount
+     - Original currency exchange rate at the time of the transaction
+     - Settlement amount (in local or functional currency)
+     - Settlement exchange rate (when the transaction was closed or settled)
+  3. Calculate the realized FX gain or loss for each transaction:
+     - Realized Gain/Loss = (Settlement Amount - Original Amount) * (Settlement Exchange Rate - Original Exchange Rate).
+     - If the result is positive, it is a gain; if negative, it is a loss.
+  4. Summarize the realized FX gains and losses for all transactions within the specified period:
+     - Total Realized FX Gains = Sum of all positive realized gains.
+     - Total Realized FX Losses = Sum of all negative realized losses.
+  5. Validate the data (ensure all transactions have correct exchange rates, amounts, and settlement details).
+  6. Store the Realized FX Gains/Losses report and return the results:
+     - Include the realized gains and losses for each transaction, along with the total realized FX gains and losses for the period.
 
- SQL: 
--- Step 1: Retrieve the planned budget data for the specified date range
-WITH budget_data AS (
+ SQL:      
+-- Step 1: Retrieve all FX transactions within the specified date range
+WITH fx_transactions AS (
     SELECT
-        b.category,
-        b.budgeted_amount
-    FROM budget_table b
-    WHERE b.period_start_date >= :startDate AND b.period_end_date <= :endDate
+        fx.transaction_id,
+        fx.transaction_date,
+        fx.original_currency_amount,
+        fx.original_exchange_rate,
+        fx.settlement_amount,
+        fx.settlement_exchange_rate
+    FROM fx_transactions_table fx
+    WHERE fx.transaction_date >= :startDate
+      AND fx.transaction_date <= :endDate
 ),
 
--- Step 2: Retrieve the actual financial data for the specified date range
-actuals_data AS (
+-- Step 2: Calculate the realized FX gain/loss for each transaction
+fx_gains_losses AS (
     SELECT
-        a.category,
-        SUM(a.actual_amount) AS actual_amount
-    FROM actuals_table a
-    WHERE a.transaction_date >= :startDate AND a.transaction_date <= :endDate
-    GROUP BY a.category
+        transaction_id,
+        transaction_date,
+        original_currency_amount,
+        original_exchange_rate,
+        settlement_amount,
+        settlement_exchange_rate,
+        -- Realized Gain/Loss = (Settlement Amount - Original Amount) * (Settlement Exchange Rate - Original Exchange Rate)
+        (settlement_amount - original_currency_amount) * (settlement_exchange_rate - original_exchange_rate) AS realized_fx_gain_loss
+    FROM fx_transactions
 ),
 
--- Step 3: Compare the budgeted amounts to the actual amounts for each category and calculate the variance
-variance_data AS (
+-- Step 3: Summarize the realized FX gains and losses
+summarized_results AS (
     SELECT
-        b.category,
-        b.budgeted_amount,
-        COALESCE(a.actual_amount, 0) AS actual_amount,
-        COALESCE(a.actual_amount, 0) - b.budgeted_amount AS variance
-    FROM budget_data b
-    LEFT JOIN actuals_data a ON b.category = a.category
-),
-
--- Step 4: Calculate the percentage variance for each category
-percentage_variance_data AS (
-    SELECT
-        category,
-        budgeted_amount,
-        actual_amount,
-        variance,
-        CASE
-            WHEN budgeted_amount != 0 THEN (variance / budgeted_amount) * 100
-            ELSE 0
-        END AS percentage_variance
-    FROM variance_data
-),
-
--- Step 5: Optionally, categorize the results by type (e.g., revenue, expenses)
-categorized_results AS (
-    SELECT
-        category,
-        budgeted_amount,
-        actual_amount,
-        variance,
-        percentage_variance,
-        CASE
-            WHEN category IN ('Revenue', 'Sales') THEN 'Revenue'
-            WHEN category IN ('Expenses', 'Cost of Goods Sold') THEN 'Expenses'
-            ELSE 'Other'
-        END AS category_type
-    FROM percentage_variance_data
-),
-
--- Step 6: Calculate cumulative totals for both budgeted and actual amounts
-totals AS (
-    SELECT
-        SUM(budgeted_amount) AS total_budget,
-        SUM(actual_amount) AS total_actuals,
-        SUM(actual_amount) - SUM(budgeted_amount) AS cumulative_variance
-    FROM percentage_variance_data
+        SUM(CASE WHEN realized_fx_gain_loss > 0 THEN realized_fx_gain_loss ELSE 0 END) AS total_realized_fx_gains,
+        SUM(CASE WHEN realized_fx_gain_loss < 0 THEN realized_fx_gain_loss ELSE 0 END) AS total_realized_fx_losses
+    FROM fx_gains_losses
 )
 
--- Step 7: Identify categories where the variance is significant (e.g., over-budget or under-budget by a certain threshold)
+-- Step 4: Return the realized gains and losses for each transaction, along with the summarized totals
 SELECT
-    category,
-    budgeted_amount,
-    actual_amount,
-    variance,
-    percentage_variance,
-    category_type
-FROM categorized_results
-WHERE ABS(variance) > 1000  -- Example threshold for significant variance
+    f.transaction_id,
+    f.transaction_date,
+    f.original_currency_amount,
+    f.original_exchange_rate,
+    f.settlement_amount,
+    f.settlement_exchange_rate,
+    f.realized_fx_gain_loss,
+    CASE
+        WHEN f.realized_fx_gain_loss > 0 THEN 'Gain'
+        WHEN f.realized_fx_gain_loss < 0 THEN 'Loss'
+        ELSE 'No Gain/Loss'
+    END AS gain_loss_type
+FROM fx_gains_losses f
 
 UNION ALL
 
--- Step 8: Return the overall totals and summary
+-- Step 5: Return the total realized FX gains and losses for the period
 SELECT
-    'Total' AS category,
-    total_budget,
-    total_actuals,
-    cumulative_variance AS variance,
-    CASE 
-        WHEN total_budget != 0 THEN (cumulative_variance / total_budget) * 100
-        ELSE 0
-    END AS percentage_variance,
-    'Summary' AS category_type
-FROM totals
-ORDER BY category;
+    'Total' AS transaction_id,
+    NULL AS transaction_date,
+    NULL AS original_currency_amount,
+    NULL AS original_exchange_rate,
+    NULL AS settlement_amount,
+    NULL AS settlement_exchange_rate,
+    total_realized_fx_gains + total_realized_fx_losses AS realized_fx_gain_loss,
+    CASE
+        WHEN total_realized_fx_gains + total_realized_fx_losses > 0 THEN 'Total Gain'
+        WHEN total_realized_fx_gains + total_realized_fx_losses < 0 THEN 'Total Loss'
+        ELSE 'No Net Gain/Loss'
+    END AS gain_loss_type
+FROM summarized_results
+ORDER BY transaction_id;

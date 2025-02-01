@@ -1,3 +1,11 @@
+| #  | account_type  | total_revenues | total_expenses | net_movement |
+|----|---------------|----------------|----------------|--------------|
+| 1  | asset         | 0              | 500.00         | 500.00       |
+| 2  | cash          | 8800.00        | 0              | -8800.00     |
+| 3  | payables      | 0              | 1350.00        | 1350.00      |
+| 4  | receivables   | 1000.00        | 950.00         | -50.00       |
+| 5  | Total         | 9800.00        | 2800.00        | -7000.00     |
+
 Algorithm:
   
 Account_Transactions_Overview(startDate, endDate):
@@ -13,6 +21,7 @@ Account_Transactions_Overview(startDate, endDate):
   7. Store the account transactions data and return the results (overview of account movements by type).
 
 SQL:
+  
 WITH DateSeries AS (
     SELECT generate_series(
         '2025-01-01'::DATE, 
@@ -26,7 +35,7 @@ account_transactions AS (
     SELECT
         t.id,
         t.transaction_date,
-        t.transaction_type, -- 'debit' or 'credit'
+        t.transaction_type, -- 'revenue' or 'expense'
         t.amount,
         a.account_id,
         a.account_name,
@@ -36,16 +45,16 @@ account_transactions AS (
     WHERE t.transaction_date BETWEEN '2025-01-01' AND '2025-01-10'
     -- Step 5: Validate the transaction data by ensuring no invalid entries (e.g., NULL amounts or missing account_id)
     AND t.amount IS NOT NULL
-    AND t.transaction_type IN ('debit', 'credit')
+    AND t.transaction_type IN ('revenue', 'expense')
     AND a.account_id IS NOT NULL
 ),
 
--- Step 2: Group transactions by account type and calculate debits and credits
+-- Step 2: Group transactions by account type and calculate revenues and expenses
 account_summary AS (
     SELECT
         at.account_type,
-        SUM(CASE WHEN at.transaction_type = 'debit' THEN at.amount ELSE 0 END) AS total_debits,
-        SUM(CASE WHEN at.transaction_type = 'credit' THEN at.amount ELSE 0 END) AS total_credits
+        SUM(CASE WHEN at.transaction_type = 'revenue' THEN at.amount ELSE 0 END) AS total_revenues,
+        SUM(CASE WHEN at.transaction_type = 'expense' THEN at.amount ELSE 0 END) AS total_expenses
     FROM account_transactions at
     GROUP BY at.account_type
 )
@@ -53,17 +62,19 @@ account_summary AS (
 -- Step 3: Calculate net movement for each account type
 SELECT
     asummary.account_type,
-    asummary.total_debits,
-    asummary.total_credits,
-    (asummary.total_credits - asummary.total_debits) AS net_movement
+    asummary.total_revenues,
+    asummary.total_expenses,
+    (asummary.total_expenses - asummary.total_revenues) AS net_movement
 FROM account_summary asummary
 
--- Step 4: Calculate the overall total debits and credits across all account types
+-- Step 4: Calculate the overall total revenues and expenses across all account types
 UNION ALL
 SELECT
     'Total' AS account_type,
-    SUM(asummary.total_debits) AS total_debits,
-    SUM(asummary.total_credits) AS total_credits,
+    SUM(asummary.total_revenues) AS total_revenues,
+    SUM(asummary.total_expenses) AS total_expenses,
+    SUM(asummary.total_expenses) - SUM(asummary.total_revenues) AS net_movement
+FROM account_summary asummary;
     SUM(asummary.total_credits) - SUM(asummary.total_debits) AS net_movement
 FROM account_summary asummary;
 

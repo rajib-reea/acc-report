@@ -16,6 +16,34 @@ WITH DateSeries AS (
         INTERVAL '1 day'
     )::DATE AS transaction_date
 ),
+Inflows AS (
+    SELECT 
+        transaction_date,
+        SUM(amount) AS total_inflow
+    FROM acc_transactions
+    WHERE transaction_date BETWEEN '2025-01-01' AND '2025-01-10'
+      AND is_active = TRUE
+      AND LOWER(category) IN ('sales', 'subscriptions', 'service income', 'loans', 'investments', 'owner capital')  -- Inflows
+    GROUP BY transaction_date
+),
+Outflows AS (
+    SELECT 
+        transaction_date,
+        SUM(amount) AS total_outflow
+    FROM acc_transactions
+    WHERE transaction_date BETWEEN '2025-01-01' AND '2025-01-10'
+      AND is_active = TRUE
+      AND LOWER(category) IN ('operating expenses', 'rent', 'utilities', 'marketing', 
+                              'professional services', 'salaries', 'insurance', 'taxes')  -- Outflows
+    GROUP BY transaction_date
+),
+NetIncome AS (
+    SELECT 
+        I.transaction_date,
+        COALESCE(I.total_inflow, 0) - COALESCE(O.total_outflow, 0) AS net_income
+    FROM Inflows I
+    FULL OUTER JOIN Outflows O ON I.transaction_date = O.transaction_date
+),
 EquityData AS (
     -- Step 1: Retrieve the opening equity balance for each day (cumulative before the day)
     SELECT 
@@ -43,19 +71,22 @@ EquityMovement AS (
     SELECT 
         D.transaction_date,
         E.opening_equity,
+        COALESCE(N.net_income, 0) AS net_income,
         COALESCE(C.retained_earnings, 0) AS retained_earnings,
         COALESCE(C.new_investments, 0) AS new_investments,
         COALESCE(C.dividends_paid, 0) AS dividends_paid,
-        -- Adjusted Equity = Opening Equity + Retained Earnings + New Investments - Dividends Paid
-        E.opening_equity + COALESCE(C.retained_earnings, 0) + COALESCE(C.new_investments, 0) - COALESCE(C.dividends_paid, 0) AS adjusted_equity
+        -- Adjusted Equity = Opening Equity + Net Income + New Investments - Dividends Paid
+        E.opening_equity + COALESCE(N.net_income, 0) + COALESCE(C.new_investments, 0) - COALESCE(C.dividends_paid, 0) AS adjusted_equity
     FROM DateSeries D
     LEFT JOIN EquityData E ON D.transaction_date = E.transaction_date
     LEFT JOIN EquityChanges C ON D.transaction_date = C.transaction_date
+    LEFT JOIN NetIncome N ON D.transaction_date = N.transaction_date
 )
 -- Step 4: Return the daily equity movement report
 SELECT 
     transaction_date,
     opening_equity,
+    net_income,
     retained_earnings,
     new_investments,
     dividends_paid,

@@ -9,198 +9,115 @@ Algorithm:
   6. Return the balance sheet overview.
 
   SQL:
--- Define the date parameter
-\set date '2025-12-31'
-
--- Step 1: Retrieve total assets (Cash, Inventory, Accounts Receivable, Fixed Assets)
-WITH TotalAssets AS (
-    SELECT 
-        COALESCE(SUM(CASE WHEN LOWER(category) = 'cash' THEN amount ELSE 0 END), 0) AS total_cash,
-        COALESCE(SUM(CASE WHEN LOWER(category) = 'inventory' THEN amount ELSE 0 END), 0) AS total_inventory,
-        COALESCE(SUM(CASE WHEN LOWER(category) = 'accounts receivable' THEN amount ELSE 0 END), 0) AS total_ar,
-        COALESCE(SUM(CASE WHEN LOWER(category) = 'fixed assets' THEN amount ELSE 0 END), 0) AS total_fixed_assets
-    FROM acc_transactions
-    WHERE transaction_date <= :date
-      AND is_active = TRUE
-),
--- Step 2: Retrieve total liabilities (Loans, Accounts Payable, Other Debts)
-TotalLiabilities AS (
-    SELECT 
-        COALESCE(SUM(CASE WHEN LOWER(category) = 'loans' THEN amount ELSE 0 END), 0) AS total_loans,
-        COALESCE(SUM(CASE WHEN LOWER(category) = 'accounts payable' THEN amount ELSE 0 END), 0) AS total_ap,
-        COALESCE(SUM(CASE WHEN LOWER(category) = 'other debts' THEN amount ELSE 0 END), 0) AS total_other_debts
-    FROM acc_transactions
-    WHERE transaction_date <= :date
-      AND is_active = TRUE
-),
--- Step 3: Retrieve total equity (Owner’s Capital, Retained Earnings)
-TotalEquity AS (
-    SELECT 
-        COALESCE(SUM(CASE WHEN LOWER(category) = 'owner capital' THEN amount ELSE 0 END), 0) AS total_owner_capital,
-        COALESCE(SUM(CASE WHEN LOWER(category) = 'retained earnings' THEN amount ELSE 0 END), 0) AS total_retained_earnings
-    FROM acc_transactions
-    WHERE transaction_date <= :date
-      AND is_active = TRUE
-),
--- Step 4: Validate the balance equation
-BalanceValidation AS (
-    SELECT 
-        (SELECT total_cash + total_inventory + total_ar + total_fixed_assets FROM TotalAssets) AS total_assets,
-        (SELECT total_loans + total_ap + total_other_debts FROM TotalLiabilities) AS total_liabilities,
-        (SELECT total_owner_capital + total_retained_earnings FROM TotalEquity) AS total_equity
-)
--- Step 5: Generate the report and return the balance sheet overview
-SELECT 
-    total_assets,
-    total_liabilities,
-    total_equity,
-    CASE 
-        WHEN total_assets = (total_liabilities + total_equity) THEN 'Balanced'
-
- day-based alogithm:
-  alanceSheetOverview(start_date, end_date)
-Retrieve total assets (Cash, Inventory, Accounts Receivable, Fixed Assets) for each day.
-Retrieve total liabilities (Loans, Accounts Payable, Other Debts) for each day.
-Retrieve total equity (Owner’s Capital, Retained Earnings) for each day.
-Validate the balance equation per day:
-Total Assets = Total Liabilities + Total Equity
-If balanced, generate the report showing daily totals.
-Return the day-based balance sheet overview.
-
-  sql:
-  -- Define the date range for the balance sheet overview
-\set start_date '2025-01-01'
-\set end_date '2025-01-10'
-
--- Step 1: Retrieve total assets per day
-WITH DailyAssets AS (
-    SELECT 
-        transaction_date,
-        COALESCE(SUM(CASE WHEN LOWER(category) = 'cash' THEN amount ELSE 0 END), 0) AS total_cash,
-        COALESCE(SUM(CASE WHEN LOWER(category) = 'inventory' THEN amount ELSE 0 END), 0) AS total_inventory,
-        COALESCE(SUM(CASE WHEN LOWER(category) = 'accounts receivable' THEN amount ELSE 0 END), 0) AS total_ar,
-        COALESCE(SUM(CASE WHEN LOWER(category) = 'fixed assets' THEN amount ELSE 0 END), 0) AS total_fixed_assets
-    FROM acc_transactions
-    WHERE transaction_date BETWEEN :start_date AND :end_date
-      AND is_active = TRUE
-    GROUP BY transaction_date
-),
-
--- Step 2: Retrieve total liabilities per day
-DailyLiabilities AS (
-    SELECT 
-        transaction_date,
-        COALESCE(SUM(CASE WHEN LOWER(category) = 'loans' THEN amount ELSE 0 END), 0) AS total_loans,
-        COALESCE(SUM(CASE WHEN LOWER(category) = 'accounts payable' THEN amount ELSE 0 END), 0) AS total_ap,
-        COALESCE(SUM(CASE WHEN LOWER(category) = 'other debts' THEN amount ELSE 0 END), 0) AS total_other_debts
-    FROM acc_transactions
-    WHERE transaction_date BETWEEN :start_date AND :end_date
-      AND is_active = TRUE
-    GROUP BY transaction_date
-),
-
--- Step 3: Retrieve total equity per day
-DailyEquity AS (
-    SELECT 
-        transaction_date,
-        COALESCE(SUM(CASE WHEN LOWER(category) = 'owner capital' THEN amount ELSE 0 END), 0) AS total_owner_capital,
-        COALESCE(SUM(CASE WHEN LOWER(category) = 'retained earnings' THEN amount ELSE 0 END), 0) AS total_retained_earnings
-    FROM acc_transactions
-    WHERE transaction_date BETWEEN :start_date AND :end_date
-      AND is_active = TRUE
-    GROUP BY transaction_date
-),
-
--- Step 4: Validate balance equation per day
-BalanceValidation AS (
-    SELECT 
-        A.transaction_date,
-        (A.total_cash + A.total_inventory + A.total_ar + A.total_fixed_assets) AS total_assets,
-        (L.total_loans + L.total_ap + L.total_other_debts) AS total_liabilities,
-        (E.total_owner_capital + E.total_retained_earnings) AS total_equity
-    FROM DailyAssets A
-    LEFT JOIN DailyLiabilities L ON A.transaction_date = L.transaction_date
-    LEFT JOIN DailyEquity E ON A.transaction_date = E.transaction_date
-)
-
--- Step 5: Generate the daily balance sheet report
-SELECT 
-    transaction_date,
-    total_assets,
-    total_liabilities,
-    total_equity,
-    CASE 
-        WHEN total_assets = (total_liabilities + total_equity) THEN 'Balanced'
-        ELSE 'Unbalanced'
-    END AS balance_status
-FROM BalanceValidation
-ORDER BY transaction_date;
-
-        ELSE 'Unbalanced'
-    END AS balance_status
-FROM BalanceValidation;
-
-//////////////
-WITH DateSeries AS (
+  
+  WITH 
+DateSeries AS (
     SELECT generate_series(
         '2025-01-01'::DATE, 
         '2025-01-10'::DATE, 
         INTERVAL '1 day'
     )::DATE AS transaction_date
 ),
-DailyAssets AS (
-    SELECT 
-        transaction_date,
-        COALESCE(SUM(CASE WHEN LOWER(category) = 'cash' THEN amount ELSE 0 END), 0) AS total_cash,
-        COALESCE(SUM(CASE WHEN LOWER(category) = 'inventory' THEN amount ELSE 0 END), 0) AS total_inventory,
-        COALESCE(SUM(CASE WHEN LOWER(category) = 'accounts receivable' THEN amount ELSE 0 END), 0) AS total_ar,
-        COALESCE(SUM(CASE WHEN LOWER(category) = 'fixed assets' THEN amount ELSE 0 END), 0) AS total_fixed_assets
-    FROM acc_transactions
-    WHERE transaction_date BETWEEN '2025-01-01' AND '2025-01-10'
-      AND is_active = TRUE
-    GROUP BY transaction_date
-),
 DailyLiabilities AS (
     SELECT 
         transaction_date,
-        COALESCE(SUM(CASE WHEN LOWER(category) = 'loans' THEN amount ELSE 0 END), 0) AS total_loans,
-        COALESCE(SUM(CASE WHEN LOWER(category) = 'accounts payable' THEN amount ELSE 0 END), 0) AS total_ap,
-        COALESCE(SUM(CASE WHEN LOWER(category) = 'other debts' THEN amount ELSE 0 END), 0) AS total_other_debts
+        COALESCE(SUM(CASE WHEN LOWER(category) = 'loans' THEN amount ELSE 0 END), 0) AS loans,
+        COALESCE(SUM(CASE WHEN LOWER(category) = 'accounts payable' THEN amount ELSE 0 END), 0) AS ap,
+        COALESCE(SUM(CASE WHEN LOWER(category) = 'other debts' THEN amount ELSE 0 END), 0) AS other_debts,
+        COALESCE(SUM(CASE WHEN LOWER(category) = 'taxes payable' THEN amount ELSE 0 END), 0) AS taxes_payable,  -- New category
+        COALESCE(SUM(CASE WHEN LOWER(category) = 'credit lines' THEN amount ELSE 0 END), 0) AS credit_lines  -- New category
     FROM acc_transactions
-    WHERE transaction_date BETWEEN '2025-01-01' AND '2025-01-10'
-      AND is_active = TRUE
+    WHERE 
+      is_active = TRUE
+    GROUP BY transaction_date
+),
+DailyAssets AS (
+    SELECT 
+        transaction_date,
+        COALESCE(SUM(
+            CASE 
+                WHEN LOWER(category) IN ('sales', 'subscriptions', 'service income') THEN amount
+                ELSE 0 
+            END
+        ), 0) AS income,  -- renamed from cash_earned
+        COALESCE(SUM(
+            CASE 
+                WHEN LOWER(category) IN ('operating expenses', 'rent', 'utilities', 'marketing', 'professional services', 'salaries', 'insurance', 'taxes') THEN amount
+                ELSE 0 
+            END
+        ), 0) AS expenditure,  -- renamed from cash_expended
+        COALESCE(SUM(
+            CASE 
+                WHEN LOWER(category) = 'inventory' THEN amount
+                ELSE 0 
+            END
+        ), 0) AS inventory,
+        COALESCE(SUM(
+            CASE 
+                WHEN LOWER(category) = 'accounts receivable' THEN amount
+                ELSE 0 
+            END
+        ), 0) AS ar,
+        COALESCE(SUM(
+            CASE 
+                WHEN LOWER(category) = 'fixed assets' THEN amount
+                ELSE 0 
+            END
+        ), 0) AS fixed_assets,
+        COALESCE(SUM(
+            CASE 
+                WHEN LOWER(category) = 'intangible assets' THEN amount
+                ELSE 0 
+            END
+        ), 0) AS intangible_assets  -- New category for intangible assets
+    FROM acc_transactions
+    WHERE is_active = TRUE
     GROUP BY transaction_date
 ),
 DailyEquity AS (
     SELECT 
         transaction_date,
-        COALESCE(SUM(CASE WHEN LOWER(category) = 'owner capital' THEN amount ELSE 0 END), 0) AS total_owner_capital,
-        COALESCE(SUM(CASE WHEN LOWER(category) = 'retained earnings' THEN amount ELSE 0 END), 0) AS total_retained_earnings
+        COALESCE(SUM(CASE WHEN LOWER(category) = 'owner capital' THEN amount ELSE 0 END), 0) AS owner_capital
     FROM acc_transactions
-    WHERE transaction_date BETWEEN '2025-01-01' AND '2025-01-10'
-      AND is_active = TRUE
+    WHERE 
+    is_active = TRUE
     GROUP BY transaction_date
 ),
 BalanceValidation AS (
     SELECT 
         D.transaction_date,
-        COALESCE(A.total_cash + A.total_inventory + A.total_ar + A.total_fixed_assets, 0) AS total_assets,
-        COALESCE(L.total_loans + L.total_ap + L.total_other_debts, 0) AS total_liabilities,
-        COALESCE(E.total_owner_capital + E.total_retained_earnings, 0) AS total_equity
+        COALESCE(A.income + A.inventory + A.ar + A.fixed_assets + A.intangible_assets - A.expenditure, 0) AS assets,
+        COALESCE(L.loans + L.ap + L.other_debts + L.taxes_payable + L.credit_lines, 0) AS liabilities,
+        COALESCE(
+            SUM(A.income - A.expenditure) OVER (ORDER BY D.transaction_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) 
+            + E.owner_capital, 0) AS equity
     FROM DateSeries D
     LEFT JOIN DailyAssets A ON D.transaction_date = A.transaction_date
     LEFT JOIN DailyLiabilities L ON D.transaction_date = L.transaction_date
     LEFT JOIN DailyEquity E ON D.transaction_date = E.transaction_date
 )
+
 SELECT 
-    transaction_date,
-    total_assets,
-    total_liabilities,
-    total_equity,
-    CASE 
-        WHEN total_assets = (total_liabilities + total_equity) THEN 'Balanced'
-        ELSE 'Unbalanced'
-    END AS balance_status
-FROM BalanceValidation
-ORDER BY transaction_date;
+    ds.transaction_date,
+    COALESCE(dl.loans, 0) AS loans,
+    COALESCE(dl.ap, 0) AS ap,
+    COALESCE(dl.other_debts, 0) AS other_debts,
+    COALESCE(dl.taxes_payable, 0) AS taxes_payable,  -- New column for taxes payable
+    COALESCE(dl.credit_lines, 0) AS credit_lines,  -- New column for credit lines
+    COALESCE(da.income, 0) AS income,  -- renamed from cash_earned
+    COALESCE(da.expenditure, 0) AS expenditure,  -- renamed from cash_expended
+    COALESCE(da.inventory, 0) AS inventory,
+    COALESCE(da.ar, 0) AS ar,
+    COALESCE(da.fixed_assets, 0) AS fixed_assets,
+    COALESCE(da.intangible_assets, 0) AS intangible_assets,  -- New column for intangible assets
+    COALESCE(de.owner_capital, 0) AS owner_capital,
+    COALESCE(bv.equity, 0) AS equity,
+    COALESCE(bv.assets, 0) AS assets,
+    COALESCE(bv.liabilities, 0) AS liabilities
+FROM DateSeries ds
+LEFT JOIN DailyLiabilities dl ON ds.transaction_date = dl.transaction_date
+LEFT JOIN DailyAssets da ON ds.transaction_date = da.transaction_date
+LEFT JOIN DailyEquity de ON ds.transaction_date = de.transaction_date
+LEFT JOIN BalanceValidation bv ON ds.transaction_date = bv.transaction_date
+ORDER BY ds.transaction_date;
 

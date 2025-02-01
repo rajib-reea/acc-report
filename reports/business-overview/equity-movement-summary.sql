@@ -1,15 +1,15 @@
-| #   | transaction_date | opening_equity | net_income | retained_earnings | new_investments | dividends_paid | adjusted_equity | invariant_check |
-|-----|------------------|----------------|------------|-------------------|-----------------|----------------|------------------|-----------------|
-| 1   | 2025-01-01       | 0              | 3000.00    | 0                 | 0               | 0              | 3000.00          | 0.00            |
-| 2   | 2025-01-02       | 0              | 0          | 0                 | 0               | 0              | 0.00             | 0.00            |
-| 3   | 2025-01-03       | 0              | 0          | 0                 | 0               | 0              | 0.00             | 0.00            |
-| 4   | 2025-01-04       | 0              | 0          | 0                 | 0               | 0              | 0.00             | 0.00            |
-| 5   | 2025-01-05       | 0              | 1000.00    | 0                 | 0               | 0              | 1000.00          | 0.00            |
-| 6   | 2025-01-06       | 0              | 0          | 0                 | 0               | 0              | 0.00             | 0.00            |
-| 7   | 2025-01-07       | 0              | 0          | 0                 | 0               | 0              | 0.00             | 0.00            |
-| 8   | 2025-01-08       | 0              | 1800.00    | 0                 | 0               | 0              | 1800.00          | 0.00            |
-| 9   | 2025-01-09       | 0              | 0          | 0                 | 0               | 0              | 0.00             | 0.00            |
-| 10  | 2025-01-10       | 0              | 3000.00    | 0                 | 0               | 0              | 3000.00          | 0.00            |
+| #  | transaction_date | opening_equity | net_income | retained_earnings | new_investments | dividends_paid | adjusted_equity | invariant_check |
+|----|------------------|----------------|------------|-------------------|-----------------|----------------|-----------------|-----------------|
+| 1  | 2025-01-01       | 0              | 3000.00    | 0                 | 0               | 0              | 3000.00         | 0.00            |
+| 2  | 2025-01-02       | 0              | 0          | 0                 | 0               | 0              | 0               | 0.00            |
+| 3  | 2025-01-03       | 0              | 0          | 0                 | 0               | 0              | 0               | 0.00            |
+| 4  | 2025-01-04       | 0              | 0          | 0                 | 0               | 0              | 0               | 0.00            |
+| 5  | 2025-01-05       | 0              | 1000.00    | 0                 | 0               | 0              | 1000.00         | 0.00            |
+| 6  | 2025-01-06       | 0              | 0          | 0                 | 0               | 0              | 0               | 0.00            |
+| 7  | 2025-01-07       | 0              | 0          | 0                 | 0               | 0              | 0               | 0.00            |
+| 8  | 2025-01-08       | 0              | 1800.00    | 0                 | 0               | 0              | 1800.00         | 0.00            |
+| 9  | 2025-01-09       | 0              | 0          | 0                 | 0               | 0              | 0               | 0.00            |
+| 10 | 2025-01-10       | 0              | 3000.00    | 0                 | 0               | 0              | 3000.00         | 0.00            |
 
 Algorithm:
   EquityMovementSummary(startDate, endDate):
@@ -80,20 +80,21 @@ EquityChanges AS (
     GROUP BY transaction_date
 ),
 EquityMovement AS (
-    -- Step 3: Calculate equity movements for each day
+    -- Step 3: Calculate equity movements for each day, rolling over opening equity
     SELECT 
         D.transaction_date,
-        E.opening_equity,
+        -- Opening equity is the adjusted equity of the previous day (using LAG)
+        COALESCE(LAG(E.opening_equity) OVER (ORDER BY D.transaction_date), 0) AS opening_equity,
         COALESCE(N.net_income, 0) AS net_income,
         COALESCE(C.retained_earnings, 0) AS retained_earnings,
         COALESCE(C.new_investments, 0) AS new_investments,
         COALESCE(C.dividends_paid, 0) AS dividends_paid,
         -- Adjusted Equity = Opening Equity + Net Income + New Investments - Dividends Paid
-        E.opening_equity + COALESCE(N.net_income, 0) + COALESCE(C.new_investments, 0) - COALESCE(C.dividends_paid, 0) AS adjusted_equity
+        COALESCE(LAG(E.opening_equity) OVER (ORDER BY D.transaction_date), 0) + COALESCE(N.net_income, 0) + COALESCE(C.new_investments, 0) - COALESCE(C.dividends_paid, 0) AS adjusted_equity
     FROM DateSeries D
-    LEFT JOIN EquityData E ON D.transaction_date = E.transaction_date
     LEFT JOIN EquityChanges C ON D.transaction_date = C.transaction_date
     LEFT JOIN NetIncome N ON D.transaction_date = N.transaction_date
+    LEFT JOIN EquityData E ON D.transaction_date = E.transaction_date
 ),
 -- Step 4: Invariant check to compare adjusted equity with the sum of opening equity and net income
 FinalReport AS (
@@ -124,3 +125,4 @@ SELECT
     invariant_check
 FROM FinalReport
 ORDER BY transaction_date;
+

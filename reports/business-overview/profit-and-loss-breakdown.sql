@@ -24,7 +24,7 @@ WITH DateSeries AS (
 Revenue AS (
     SELECT 
         transaction_date, 
-        COALESCE(SUM(amount), 0) AS total_revenue
+        COALESCE(SUM(amount), 0) AS revenue
     FROM acc_transactions
     WHERE transaction_type = 'revenue' 
         AND transaction_date BETWEEN '2025-01-01' AND '2025-01-10' 
@@ -37,11 +37,11 @@ Revenue AS (
 Expenses AS (
     SELECT 
         transaction_date, 
-        COALESCE(SUM(CASE WHEN LOWER(category) = 'cogs' THEN amount ELSE 0 END), 0) AS total_cogs,
+        COALESCE(SUM(CASE WHEN LOWER(category) = 'cogs' THEN amount ELSE 0 END), 0) AS cogs,
         COALESCE(SUM(CASE WHEN LOWER(category) IN (
             'operating expenses', 'rent', 'utilities', 'marketing', 'professional services', 'salaries', 'insurance'
         ) THEN amount ELSE 0 END), 0) AS operating_expenses,
-        COALESCE(SUM(CASE WHEN LOWER(category) = 'taxes' THEN amount ELSE 0 END), 0) AS total_taxes
+        COALESCE(SUM(CASE WHEN LOWER(category) = 'taxes' THEN amount ELSE 0 END), 0) AS taxes
     FROM acc_transactions
     WHERE transaction_type = 'expense' 
         AND transaction_date BETWEEN '2025-01-01' AND '2025-01-10' 
@@ -51,10 +51,10 @@ Expenses AS (
 Aggregated AS (
     SELECT 
         ds.transaction_date,
-        COALESCE(r.total_revenue, 0) AS total_revenue,
-        COALESCE(e.total_cogs, 0) AS total_cogs,
+        COALESCE(r.revenue, 0) AS revenue,
+        COALESCE(e.cogs, 0) AS cogs,
         COALESCE(e.operating_expenses, 0) AS operating_expenses,
-        COALESCE(e.total_taxes, 0) AS total_taxes
+        COALESCE(e.taxes, 0) AS taxes
     FROM DateSeries ds
     LEFT JOIN Revenue r ON ds.transaction_date = r.transaction_date
     LEFT JOIN Expenses e ON ds.transaction_date = e.transaction_date
@@ -62,13 +62,13 @@ Aggregated AS (
 Calculated AS (
     SELECT 
         transaction_date,
-        total_revenue,
-        total_cogs,
-        (total_revenue - total_cogs) AS gross_profit,
+        revenue,
+        cogs,
+        (revenue - cogs) AS gross_profit,
         operating_expenses,
-        (total_revenue - total_cogs - operating_expenses) AS operating_profit,
-        total_taxes,
-        (total_revenue - total_cogs - operating_expenses - total_taxes) AS net_profit
+        (revenue - cogs - operating_expenses) AS operating_profit,
+        taxes,
+        (revenue - cogs - operating_expenses - taxes) AS net_profit
     FROM Aggregated
 ),
 InvariantCheck AS (
@@ -76,19 +76,19 @@ InvariantCheck AS (
     SELECT 
         transaction_date,
         CASE 
-            WHEN gross_profit + operating_expenses + total_taxes != total_revenue 
-            THEN gross_profit + operating_expenses + total_taxes - total_revenue 
+            WHEN gross_profit + operating_expenses + taxes != revenue 
+            THEN gross_profit + operating_expenses + taxes - revenue 
             ELSE 0.00 END AS invariant_mismatch
     FROM Calculated
 )
 SELECT 
     c.transaction_date,
-    c.total_revenue,
-    c.total_cogs,
+    c.revenue,
+    c.cogs,
     c.gross_profit,
     c.operating_expenses,
     c.operating_profit,
-    c.total_taxes,
+    c.taxes,
     c.net_profit,
     i.invariant_mismatch
 FROM Calculated c

@@ -38,14 +38,16 @@ WITH DateSeries AS (
 Inflows AS (
     SELECT transaction_date, COALESCE(SUM(amount), 0) AS inflow
     FROM acc_transactions
-    WHERE is_active = TRUE 
+    WHERE transaction_date BETWEEN '2025-01-01' AND '2025-01-10'
+      AND is_active = TRUE 
       AND LOWER(category) IN ('sales', 'subscriptions', 'service income', 'loans', 'investments', 'owner capital')
     GROUP BY transaction_date
 ),
 Outflows AS (
     SELECT transaction_date, COALESCE(SUM(amount), 0) AS outflow
-    FROM acc_transactions
-    WHERE is_active = TRUE 
+    FROM acc_transactions transaction_date 
+    WHERE transaction_date BETWEEN '2025-01-01' AND '2025-01-10'
+      AND is_active = TRUE 
       AND LOWER(category) IN ('operating expenses', 'rent', 'utilities', 'marketing', 'professional services', 'salaries', 'insurance', 'taxes', 'loan payments', 'dividends', 'taxes payable', 'credit lines')
     GROUP BY transaction_date
 ),

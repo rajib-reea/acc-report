@@ -18,31 +18,10 @@ The **Accounting Reports Microservice** provides financial reporting capabilitie
 - **Framework:** Laravel / Node.js / Python (Optional, for API endpoints)
 - **Authentication:** JWT / OAuth2 (if secured API access is needed)
 
-##
-Liabilities Categories:
-loans
-accounts payable (ap)
-other debts
-taxes payable
-credit lines
-Assets Categories:
-sales
-subscriptions
-service income
-operating expenses
-rent
-utilities
-marketing
-professional services
-salaries
-insurance
-taxes
-inventory
-accounts receivable (ar)
-fixed assets
-intangible assets
-Equity Category:
-owner capital
+Liabilities Categories: [loans, accounts payable (ap), other debts, taxes payable, credit lines]
+Assets Categories: [sales, subscriptions, service income, operating expenses, rent, utilities, marketing, professional services, salaries, insurance, taxes, inventory, accounts receivable (ar), fixed assets, intangible assets]
+Equity Category: [owner capital]
+
 
 
 ## Report Algorithms & Queries

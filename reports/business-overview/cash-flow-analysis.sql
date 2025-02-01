@@ -1,15 +1,29 @@
+| #  | Transaction Date | Opening Balance | Inflows | Outflows | Net Cash Flow | Closing Balance | Expected Closing Balance | Invariant Mismatch |
+|----|----------------|----------------|---------|----------|---------------|-----------------|--------------------------|--------------------|
+| 1  | 2025-01-01    | 0.00           | 3000.00 | 0.00     | 3000.00       | 3000.00         | 3000.00                  | 0.00               |
+| 2  | 2025-01-02    | 3000.00        | 0.00    | 400.00   | -400.00       | 2600.00         | 2600.00                  | 0.00               |
+| 3  | 2025-01-03    | 2600.00        | 0.00    | 0.00     | 0.00          | 2600.00         | 2600.00                  | 0.00               |
+| 4  | 2025-01-04    | 2600.00        | 0.00    | 2400.00  | -2400.00      | 200.00          | 200.00                   | 0.00               |
+| 5  | 2025-01-05    | 200.00         | 1000.00 | 0.00     | 1000.00       | 1200.00         | 1200.00                  | 0.00               |
+| 6  | 2025-01-06    | 1200.00        | 0.00    | 150.00   | -150.00       | 1050.00         | 1050.00                  | 0.00               |
+| 7  | 2025-01-07    | 1050.00        | 0.00    | 500.00   | -500.00       | 550.00          | 550.00                   | 0.00               |
+| 8  | 2025-01-08    | 550.00         | 1800.00 | 0.00     | 1800.00       | 2350.00         | 2350.00                  | 0.00               |
+| 9  | 2025-01-09    | 2350.00        | 0.00    | 750.00   | -750.00       | 1600.00         | 1600.00                  | 0.00               |
+| 10 | 2025-01-10    | 1600.00        | 3000.00 | 0.00     | 3000.00       | 4600.00         | 4600.00                  | 0.00               |
+
+
 Algorithm:
   CashFlowAnalysis(startDate, endDate):
 
-Retrieve the opening cash balance for each day.
-Retrieve daily cash inflows (Sales, Loans, Investments) for each day.
-Retrieve daily cash outflows (Expenses, Loan Payments, Dividends) for each day.
-Calculate net cash flow for each day:
-Net Cash Flow = Total Inflows - Total Outflows
-Calculate the closing cash balance for each day:
-Closing Cash Balance = Opening Balance + Net Cash Flow
-Categorize transactions into Operating, Investing, and Financing activities based on the category.
-Generate the report with a daily breakdown of the cash flow.
+1. Retrieve the opening cash balance for each day.
+2. Retrieve daily cash inflows (Sales, Loans, Investments) for each day.
+3. Retrieve daily cash outflows (Expenses, Loan Payments, Dividends) for each day.
+4. Calculate net cash flow for each day:
+  Net Cash Flow = Total Inflows - Total Outflows
+6. Calculate the closing cash balance for each day:
+  Closing Cash Balance = Opening Balance + Net Cash Flow
+7. Categorize transactions into Operating, Investing, and Financing activities based on the category.
+8. Generate the report with a daily breakdown of the cash flow.
 
 
   SQL:

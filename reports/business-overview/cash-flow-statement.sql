@@ -13,56 +13,78 @@ CashFlowStatement(startDate, endDate):
   6. Store the report and return results.
 
   SQL:
--- Define the start and end dates
-\set startDate '2025-01-01'
-\set endDate '2025-12-31'
-
+-- Generate a series of dates for the report period
+WITH DateSeries AS (
+    SELECT generate_series(
+        '2025-01-01'::DATE,
+        '2025-01-10'::DATE,
+        INTERVAL '1 day'
+    )::DATE AS transaction_date
+),
 -- Opening Cash Balance (assumed from previous period or a fixed value)
-WITH OpeningBalance AS (
+OpeningBalance AS (
     SELECT COALESCE(SUM(amount), 0) AS opening_cash
     FROM acc_transactions
-    WHERE transaction_date < :startDate
+    WHERE transaction_date < '2025-01-01'
       AND transaction_type = 'revenue'
       AND is_active = TRUE
 ),
 -- Categorizing cash inflows (Operating, Investing, Financing)
 OperatingActivities AS (
-    SELECT category, SUM(amount) AS operating_inflow
+    SELECT transaction_date, category, SUM(amount) AS operating_inflow
     FROM acc_transactions
-    WHERE transaction_date BETWEEN :startDate AND :endDate
+    WHERE transaction_date BETWEEN '2025-01-01' AND '2025-01-10'
       AND is_active = TRUE
-      AND LOWER(category) IN ('sales', 'received from customers', 'paid to suppliers')  -- Example operating activities
-    GROUP BY category
+      AND LOWER(category) IN ('sales', 'received from customers', 'paid to suppliers')  
+    GROUP BY transaction_date, category
 ),
 InvestingActivities AS (
-    SELECT category, SUM(amount) AS investing_inflow
+    SELECT transaction_date, category, SUM(amount) AS investing_inflow
     FROM acc_transactions
-    WHERE transaction_date BETWEEN :startDate AND :endDate
+    WHERE transaction_date BETWEEN '2025-01-01' AND '2025-01-10'
       AND is_active = TRUE
-      AND LOWER(category) IN ('asset purchases', 'investments', 'sale of assets')  -- Example investing activities
-    GROUP BY category
+      AND LOWER(category) IN ('asset purchases', 'investments', 'sale of assets')
+    GROUP BY transaction_date, category
 ),
 FinancingActivities AS (
-    SELECT category, SUM(amount) AS financing_inflow
+    SELECT transaction_date, category, SUM(amount) AS financing_inflow
     FROM acc_transactions
-    WHERE transaction_date BETWEEN :startDate AND :endDate
+    WHERE transaction_date BETWEEN '2025-01-01' AND '2025-01-10'
       AND is_active = TRUE
-      AND LOWER(category) IN ('loan payments', 'dividends', 'capital injections')  -- Example financing activities
-    GROUP BY category
+      AND LOWER(category) IN ('loan payments', 'dividends', 'capital injections')
+    GROUP BY transaction_date, category
 ),
--- Cash movement for each category (Inflows and Outflows)
-NetCashFlow AS (
+-- Daily Cash movement for each category (Inflows and Outflows)
+DailyNetCashFlow AS (
     SELECT 
-        (SELECT COALESCE(SUM(operating_inflow), 0) FROM OperatingActivities) AS total_operating_inflows,
-        (SELECT COALESCE(SUM(investing_inflow), 0) FROM InvestingActivities) AS total_investing_inflows,
-        (SELECT COALESCE(SUM(financing_inflow), 0) FROM FinancingActivities) AS total_financing_inflows
+        ds.transaction_date,
+        COALESCE(SUM(oa.operating_inflow), 0) AS total_operating_inflows,
+        COALESCE(SUM(ia.investing_inflow), 0) AS total_investing_inflows,
+        COALESCE(SUM(fa.financing_inflow), 0) AS total_financing_inflows
+    FROM DateSeries ds
+    LEFT JOIN OperatingActivities oa ON ds.transaction_date = oa.transaction_date
+    LEFT JOIN InvestingActivities ia ON ds.transaction_date = ia.transaction_date
+    LEFT JOIN FinancingActivities fa ON ds.transaction_date = fa.transaction_date
+    GROUP BY ds.transaction_date
 ),
--- Closing Cash Calculation
-ClosingBalance AS (
+-- Daily Closing Cash Calculation
+DailyClosingBalance AS (
     SELECT 
+        dnc.transaction_date,
         (SELECT opening_cash FROM OpeningBalance) + 
-        (SELECT (total_operating_inflows + total_investing_inflows + total_financing_inflows) FROM NetCashFlow) AS closing_cash
+        SUM(dnc.total_operating_inflows + dnc.total_investing_inflows + dnc.total_financing_inflows) 
+        OVER (ORDER BY dnc.transaction_date) AS closing_cash
+    FROM DailyNetCashFlow dnc
 )
--- Final Report
+-- Final Daily Report
 SELECT 
-    (SELECT opening_cash FROM OpeningBalance) AS opening_
+    dnc.transaction_date,
+    (SELECT opening_cash FROM OpeningBalance) AS opening_cash,
+    dnc.total_operating_inflows,
+    dnc.total_investing_inflows,
+    dnc.total_financing_inflows,
+    (dnc.total_operating_inflows + dnc.total_investing_inflows + dnc.total_financing_inflows) AS net_cash_change,
+    dcb.closing_cash
+FROM DailyNetCashFlow dnc
+JOIN DailyClosingBalance dcb ON dnc.transaction_date = dcb.transaction_date
+ORDER BY dnc.transaction_date;

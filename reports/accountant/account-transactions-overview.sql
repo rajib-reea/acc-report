@@ -13,7 +13,6 @@ Account_Transactions_Overview(startDate, endDate):
   7. Store the account transactions data and return the results (overview of account movements by type).
 
 SQL:
--- Step 0: Generate a series of dates within the specified date range
 WITH DateSeries AS (
     SELECT generate_series(
         '2025-01-01'::DATE, 
@@ -25,7 +24,7 @@ WITH DateSeries AS (
 -- Step 1: Retrieve all account transactions within the specified date range
 account_transactions AS (
     SELECT
-        t.transaction_id,
+        t.id,
         t.transaction_date,
         t.transaction_type, -- 'debit' or 'credit'
         t.amount,
@@ -33,7 +32,7 @@ account_transactions AS (
         a.account_name,
         a.account_type -- e.g., 'cash', 'receivables', 'payables'
     FROM acc_transactions t
-    JOIN accounts a ON t.account_id = a.account_id
+    JOIN acc_accounts a ON t.account_id = a.account_id
     WHERE t.transaction_date BETWEEN '2025-01-01' AND '2025-01-10'
     -- Step 5: Validate the transaction data by ensuring no invalid entries (e.g., NULL amounts or missing account_id)
     AND t.amount IS NOT NULL

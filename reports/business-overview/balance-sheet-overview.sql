@@ -1,4 +1,3 @@
-Table:
 | #  | transaction_date | loans | ap | other_debts | taxes_payable | credit_lines | income | expenditure | inventory | ar | fixed_assets | intangible_assets | owner_capital | equity  | assets  | liabilities | invariant_mismatch |
 |----|------------------|-------|----|-------------|---------------|--------------|--------|-------------|-----------|----|--------------|-------------------|---------------|---------|---------|-------------|--------------------|
 | 1  | 2025-01-01       | 0     | 0  | 0           | 0             | 0            | 3000.00 | 0           | 0         | 0  | 0            | 0                 | 0             | 3000.00 | 3000.00 | 0           | 0.00               |

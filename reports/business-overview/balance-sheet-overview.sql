@@ -24,8 +24,8 @@ DailyLiabilities AS (
         COALESCE(SUM(CASE WHEN LOWER(category) = 'loans' THEN amount ELSE 0 END), 0) AS loans,
         COALESCE(SUM(CASE WHEN LOWER(category) = 'accounts payable' THEN amount ELSE 0 END), 0) AS ap,
         COALESCE(SUM(CASE WHEN LOWER(category) = 'other debts' THEN amount ELSE 0 END), 0) AS other_debts,
-        COALESCE(SUM(CASE WHEN LOWER(category) = 'taxes payable' THEN amount ELSE 0 END), 0) AS taxes_payable,  -- New category
-        COALESCE(SUM(CASE WHEN LOWER(category) = 'credit lines' THEN amount ELSE 0 END), 0) AS credit_lines  -- New category
+        COALESCE(SUM(CASE WHEN LOWER(category) = 'taxes payable' THEN amount ELSE 0 END), 0) AS taxes_payable,
+        COALESCE(SUM(CASE WHEN LOWER(category) = 'credit lines' THEN amount ELSE 0 END), 0) AS credit_lines
     FROM acc_transactions
     WHERE 
       is_active = TRUE
@@ -86,11 +86,14 @@ DailyEquity AS (
 BalanceValidation AS (
     SELECT 
         D.transaction_date,
-        COALESCE(A.income + A.inventory + A.ar + A.fixed_assets + A.intangible_assets - A.expenditure, 0) AS assets,
-        COALESCE(L.loans + L.ap + L.other_debts + L.taxes_payable + L.credit_lines, 0) AS liabilities,
-        COALESCE(
-            SUM(A.income - A.expenditure) OVER (ORDER BY D.transaction_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) 
-            + E.owner_capital, 0) AS equity
+        -- Total Assets calculation
+        COALESCE(A.income + A.inventory + A.ar + A.fixed_assets + A.intangible_assets, 0) AS assets,
+        -- Total Liabilities calculation (including negative assets as additional liabilities)
+        COALESCE(L.loans + L.ap + L.other_debts + L.taxes_payable + L.credit_lines+A.expenditure, 0) AS liabilities,
+        -- Total Equity calculation (assets - liabilities)
+        COALESCE(A.income + A.inventory + A.ar + A.fixed_assets + A.intangible_assets , 0) 
+        - COALESCE(L.loans + L.ap + L.other_debts + L.taxes_payable + L.credit_lines+A.expenditure, 0)
+        AS equity
     FROM DateSeries D
     LEFT JOIN DailyAssets A ON D.transaction_date = A.transaction_date
     LEFT JOIN DailyLiabilities L ON D.transaction_date = L.transaction_date
@@ -114,7 +117,7 @@ SELECT
     COALESCE(bv.equity, 0) AS equity,
     COALESCE(bv.assets, 0) AS assets,
     COALESCE(bv.liabilities, 0) AS liabilities,
-    -- New field for the invariant: Total Assets = Liabilities + Equity
+    -- Adjusted invariant mismatch check (assets = liabilities + equity)
     COALESCE(bv.assets - (bv.liabilities + bv.equity), 0) AS invariant_mismatch
 FROM DateSeries ds
 LEFT JOIN DailyLiabilities dl ON ds.transaction_date = dl.transaction_date

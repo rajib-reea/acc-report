@@ -139,3 +139,68 @@ ORDER BY transaction_date;
         ELSE 'Unbalanced'
     END AS balance_status
 FROM BalanceValidation;
+
+//////////////
+WITH DateSeries AS (
+    SELECT generate_series(
+        '2025-01-01'::DATE, 
+        '2025-01-10'::DATE, 
+        INTERVAL '1 day'
+    )::DATE AS transaction_date
+),
+DailyAssets AS (
+    SELECT 
+        transaction_date,
+        COALESCE(SUM(CASE WHEN LOWER(category) = 'cash' THEN amount ELSE 0 END), 0) AS total_cash,
+        COALESCE(SUM(CASE WHEN LOWER(category) = 'inventory' THEN amount ELSE 0 END), 0) AS total_inventory,
+        COALESCE(SUM(CASE WHEN LOWER(category) = 'accounts receivable' THEN amount ELSE 0 END), 0) AS total_ar,
+        COALESCE(SUM(CASE WHEN LOWER(category) = 'fixed assets' THEN amount ELSE 0 END), 0) AS total_fixed_assets
+    FROM acc_transactions
+    WHERE transaction_date BETWEEN '2025-01-01' AND '2025-01-10'
+      AND is_active = TRUE
+    GROUP BY transaction_date
+),
+DailyLiabilities AS (
+    SELECT 
+        transaction_date,
+        COALESCE(SUM(CASE WHEN LOWER(category) = 'loans' THEN amount ELSE 0 END), 0) AS total_loans,
+        COALESCE(SUM(CASE WHEN LOWER(category) = 'accounts payable' THEN amount ELSE 0 END), 0) AS total_ap,
+        COALESCE(SUM(CASE WHEN LOWER(category) = 'other debts' THEN amount ELSE 0 END), 0) AS total_other_debts
+    FROM acc_transactions
+    WHERE transaction_date BETWEEN '2025-01-01' AND '2025-01-10'
+      AND is_active = TRUE
+    GROUP BY transaction_date
+),
+DailyEquity AS (
+    SELECT 
+        transaction_date,
+        COALESCE(SUM(CASE WHEN LOWER(category) = 'owner capital' THEN amount ELSE 0 END), 0) AS total_owner_capital,
+        COALESCE(SUM(CASE WHEN LOWER(category) = 'retained earnings' THEN amount ELSE 0 END), 0) AS total_retained_earnings
+    FROM acc_transactions
+    WHERE transaction_date BETWEEN '2025-01-01' AND '2025-01-10'
+      AND is_active = TRUE
+    GROUP BY transaction_date
+),
+BalanceValidation AS (
+    SELECT 
+        D.transaction_date,
+        COALESCE(A.total_cash + A.total_inventory + A.total_ar + A.total_fixed_assets, 0) AS total_assets,
+        COALESCE(L.total_loans + L.total_ap + L.total_other_debts, 0) AS total_liabilities,
+        COALESCE(E.total_owner_capital + E.total_retained_earnings, 0) AS total_equity
+    FROM DateSeries D
+    LEFT JOIN DailyAssets A ON D.transaction_date = A.transaction_date
+    LEFT JOIN DailyLiabilities L ON D.transaction_date = L.transaction_date
+    LEFT JOIN DailyEquity E ON D.transaction_date = E.transaction_date
+)
+SELECT 
+    transaction_date,
+    total_assets,
+    total_liabilities,
+    total_equity,
+    CASE 
+        WHEN total_assets = (total_liabilities + total_equity) THEN 'Balanced'
+        ELSE 'Unbalanced'
+    END AS balance_status
+FROM BalanceValidation
+ORDER BY transaction_date;
+

@@ -17,3 +17,21 @@ CREATE TABLE timesheet_entries (
     FOREIGN KEY (project_id) REFERENCES projects(project_id),
     FOREIGN KEY (task_id) REFERENCES tasks(task_id) -- Optional: for task-level granularity
 );
+
+CREATE TABLE employee_rates (
+    employee_id INT PRIMARY KEY,
+    hourly_rate DECIMAL(10, 2),
+    FOREIGN KEY (employee_id) REFERENCES employees(employee_id)
+);
+CREATE TABLE projects_revenue (
+    project_id INT PRIMARY KEY,
+    client_rate DECIMAL(10, 2),     -- Hourly rate charged to the client
+    FOREIGN KEY (project_id) REFERENCES projects(project_id)
+);
+
+CREATE TABLE projects_costs (
+    project_id INT PRIMARY KEY,
+    total_cost DECIMAL(10, 2),       -- Total cost for the project
+    FOREIGN KEY (project_id) REFERENCES projects(project_id)
+);
+

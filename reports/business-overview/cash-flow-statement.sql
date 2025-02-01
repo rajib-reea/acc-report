@@ -1,4 +1,4 @@
-| #   | transaction_date | opening_cash | total_inflows | total_outflows | net_cash_change | closing_cash | expected_closing_cash | invariant_check |
+| #   | transaction_date | opening_cash | total_inflows | total_outflows | net_cash_change | closing_cash | expected_closing_cash | invariant_mismatch |
 | --- | ---------------- | ------------ | ------------- | -------------- | --------------- | ------------ | --------------------- | --------------- |
 | 1   | 2025-01-01       | 0.00         | 3000.00       | 0.00           | 3000.00         | 3000.00      | 3000.00               | 0.00            |
 | 2   | 2025-01-02       | 0.00         | 0.00          | 400.00         | -400.00         | 2600.00      | 2600.00               | 0.00            |
@@ -108,6 +108,6 @@ SELECT
     CASE
         WHEN closing_cash != expected_closing_cash THEN COALESCE(expected_closing_cash- closing_cash, 0.00)
         ELSE 0.00
-    END AS invariant_check
+    END AS invariant_mismatch
 FROM FinalReport
 ORDER BY transaction_date;

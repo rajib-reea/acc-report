@@ -1,5 +1,22 @@
+# Financial Report (Jan 1 - Jan 10, 2025)
+
+| #  | Transaction Date | Revenue  | COGS  | Gross Profit | Operating Expenses | Operating Profit | Taxes | Net Profit | Invariant Mismatch |
+|----|----------------|---------|------|--------------|-------------------|----------------|------|-----------|-------------------|
+| 1  | 2025-01-01    | 3000.00 | 0    | 3000.00      | 0                 | 3000.00        | 0    | 3000.00   | 0.00              |
+| 2  | 2025-01-02    | 0       | 0    | 0            | 400.00            | -400.00        | 0    | -400.00   | 0.00              |
+| 3  | 2025-01-03    | 0       | 0    | 0            | 0                 | 0              | 0    | 0         | 0.00              |
+| 4  | 2025-01-04    | 0       | 0    | 0            | 2400.00           | -2400.00       | 0    | -2400.00  | 0.00              |
+| 5  | 2025-01-05    | 1000.00 | 0    | 1000.00      | 0                 | 1000.00        | 0    | 1000.00   | 0.00              |
+| 6  | 2025-01-06    | 0       | 0    | 0            | 150.00            | -150.00        | 0    | -150.00   | 0.00              |
+| 7  | 2025-01-07    | 0       | 0    | 0            | 500.00            | -500.00        | 0    | -500.00   | 0.00              |
+| 8  | 2025-01-08    | 1800.00 | 0    | 1800.00      | 0                 | 1800.00        | 0    | 1800.00   | 0.00              |
+| 9  | 2025-01-09    | 0       | 0    | 0            | 750.00            | -750.00        | 0    | -750.00   | 0.00              |
+| 10 | 2025-01-10    | 3000.00 | 0    | 3000.00      | 0                 | 3000.00        | 0    | 3000.00   | 0.00              |
+
+
 Algorithm:
-  ProfitAndLossBreakdown(startDate, endDate):
+
+ProfitAndLossBreakdown(startDate, endDate):
   1. Retrieve revenue categories (Sales, Services, Other Income).
   2. Retrieve expense categories (COGS, Operating Expenses, Taxes).
   3. Sum up revenue and expense values for each category.

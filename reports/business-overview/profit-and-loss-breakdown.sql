@@ -72,10 +72,10 @@ Calculated AS (
     FROM Aggregated
 ),
 InvariantCheck AS (
-    -- Invariant: Gross Profit + Operating Expenses + Taxes should equal Total Revenue
+    -- Invariant:  Opereating Profit + Taxes +  should equal Net Profit 
     SELECT 
         transaction_date,
-        ABS(COALESCE(gross_profit, 0) + COALESCE(operating_expenses, 0) + COALESCE(taxes, 0) - COALESCE(revenue, 0)) AS invariant_mismatch
+        ABS(COALESCE(net_profit, 0) - COALESCE(operating_profit, 0)  - COALESCE(taxes, 0)) AS invariant_mismatch
     FROM Calculated
 )
 SELECT 
@@ -91,5 +91,3 @@ SELECT
 FROM Calculated c
 LEFT JOIN InvariantCheck i ON c.transaction_date = i.transaction_date
 ORDER BY c.transaction_date;
-
-

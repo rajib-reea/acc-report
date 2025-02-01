@@ -113,7 +113,9 @@ SELECT
     COALESCE(de.owner_capital, 0) AS owner_capital,
     COALESCE(bv.equity, 0) AS equity,
     COALESCE(bv.assets, 0) AS assets,
-    COALESCE(bv.liabilities, 0) AS liabilities
+    COALESCE(bv.liabilities, 0) AS liabilities,
+    -- New field for the invariant: Total Assets = Liabilities + Equity
+    COALESCE(bv.assets - (bv.liabilities + bv.equity), 0) AS invariant_mismatch
 FROM DateSeries ds
 LEFT JOIN DailyLiabilities dl ON ds.transaction_date = dl.transaction_date
 LEFT JOIN DailyAssets da ON ds.transaction_date = da.transaction_date

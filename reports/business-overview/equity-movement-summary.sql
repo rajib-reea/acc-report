@@ -1,3 +1,16 @@
+| #   | transaction_date | opening_equity | net_income | retained_earnings | new_investments | dividends_paid | adjusted_equity | invariant_check |
+|-----|------------------|----------------|------------|-------------------|-----------------|----------------|------------------|-----------------|
+| 1   | 2025-01-01       | 0              | 3000.00    | 0                 | 0               | 0              | 3000.00          | 0.00            |
+| 2   | 2025-01-02       | 0              | 0          | 0                 | 0               | 0              | 0.00             | 0.00            |
+| 3   | 2025-01-03       | 0              | 0          | 0                 | 0               | 0              | 0.00             | 0.00            |
+| 4   | 2025-01-04       | 0              | 0          | 0                 | 0               | 0              | 0.00             | 0.00            |
+| 5   | 2025-01-05       | 0              | 1000.00    | 0                 | 0               | 0              | 1000.00          | 0.00            |
+| 6   | 2025-01-06       | 0              | 0          | 0                 | 0               | 0              | 0.00             | 0.00            |
+| 7   | 2025-01-07       | 0              | 0          | 0                 | 0               | 0              | 0.00             | 0.00            |
+| 8   | 2025-01-08       | 0              | 1800.00    | 0                 | 0               | 0              | 1800.00          | 0.00            |
+| 9   | 2025-01-09       | 0              | 0          | 0                 | 0               | 0              | 0.00             | 0.00            |
+| 10  | 2025-01-10       | 0              | 3000.00    | 0                 | 0               | 0              | 3000.00          | 0.00            |
+
 Algorithm:
   EquityMovementSummary(startDate, endDate):
   1. Retrieve opening equity balance.
@@ -81,8 +94,25 @@ EquityMovement AS (
     LEFT JOIN EquityData E ON D.transaction_date = E.transaction_date
     LEFT JOIN EquityChanges C ON D.transaction_date = C.transaction_date
     LEFT JOIN NetIncome N ON D.transaction_date = N.transaction_date
+),
+-- Step 4: Invariant check to compare adjusted equity with the sum of opening equity and net income
+FinalReport AS (
+    SELECT 
+        transaction_date,
+        opening_equity,
+        net_income,
+        retained_earnings,
+        new_investments,
+        dividends_paid,
+        adjusted_equity,
+        -- Invariant Check: If adjusted equity doesn't match the expected value, flag it
+        CASE
+            WHEN adjusted_equity != opening_equity + net_income THEN adjusted_equity - (opening_equity + net_income)
+            ELSE 0.00
+        END AS invariant_check
+    FROM EquityMovement
 )
--- Step 4: Return the daily equity movement report
+-- Return the final report with invariant check
 SELECT 
     transaction_date,
     opening_equity,
@@ -90,6 +120,7 @@ SELECT
     retained_earnings,
     new_investments,
     dividends_paid,
-    adjusted_equity
-FROM EquityMovement
+    adjusted_equity,
+    invariant_check
+FROM FinalReport
 ORDER BY transaction_date;

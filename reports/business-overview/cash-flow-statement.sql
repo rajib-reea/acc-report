@@ -92,8 +92,8 @@ SELECT
     closing_cash,
     expected_closing_cash,
     CASE
-        WHEN closing_cash != expected_closing_cash THEN 'invariant_mismatch'
-        ELSE 'consistent'
+        WHEN closing_cash != expected_closing_cash THEN COALESCE(expected_closing_cash- closing_cash, 0.00)
+        ELSE 0.00
     END AS invariant_check
 FROM FinalReport
 ORDER BY transaction_date;

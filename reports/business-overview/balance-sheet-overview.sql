@@ -42,8 +42,8 @@ DailyLiabilities AS (
         COALESCE(SUM(CASE WHEN LOWER(category) = 'taxes payable' THEN amount ELSE 0 END), 0) AS taxes_payable,
         COALESCE(SUM(CASE WHEN LOWER(category) = 'credit lines' THEN amount ELSE 0 END), 0) AS credit_lines
     FROM acc_transactions
-    WHERE 
-      is_active = TRUE
+    WHERE transaction_date BETWEEN '2025-01-01' AND '2025-01-10'
+      AND is_active = TRUE
     GROUP BY transaction_date
 ),
 DailyAssets AS (
@@ -86,7 +86,8 @@ DailyAssets AS (
             END
         ), 0) AS intangible_assets
     FROM acc_transactions
-    WHERE is_active = TRUE
+    WHERE transaction_date BETWEEN '2025-01-01' AND '2025-01-10'
+      AND is_active = TRUE 
     GROUP BY transaction_date
 ),
 DailyEquity AS (
@@ -94,8 +95,8 @@ DailyEquity AS (
         transaction_date,
         COALESCE(SUM(CASE WHEN LOWER(category) = 'owner capital' THEN amount ELSE 0 END), 0) AS owner_capital
     FROM acc_transactions
-    WHERE 
-    is_active = TRUE
+    WHERE transaction_date BETWEEN '2025-01-01' AND '2025-01-10'
+      AND is_active = TRUE 
     GROUP BY transaction_date
 ),
 BalanceValidation AS (

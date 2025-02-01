@@ -8,11 +8,46 @@ Store the results in the report.
 Return the Profit and Loss Summary.
 
 SQL:
-SELECT
-    COALESCE(SUM(CASE WHEN transaction_type = 'revenue' THEN amount ELSE 0 END), 0) AS total_revenue,
-    COALESCE(SUM(CASE WHEN transaction_type = 'expense' THEN amount ELSE 0 END), 0) AS total_expenses,
-    COALESCE(SUM(CASE WHEN transaction_type = 'revenue' THEN amount ELSE 0 END), 0) - 
-    COALESCE(SUM(CASE WHEN transaction_type = 'expense' THEN amount ELSE 0 END), 0) AS net_profit
-FROM acc_transactions
-WHERE transaction_date BETWEEN '2025-01-01' AND '2025-01-31'
-AND is_active = TRUE;  -- Replace with dynamic date range
+    
+WITH DateSeries AS (
+    -- Generate a date range dynamically
+    SELECT generate_series(
+        '2025-01-01'::DATE,  -- Start Date
+        '2025-01-31'::DATE,  -- End Date
+        INTERVAL '1 day'
+    )::DATE AS transaction_date
+),
+DailySummary AS (
+    SELECT 
+        ds.transaction_date,
+        COALESCE(SUM(CASE WHEN at.transaction_type = 'revenue' THEN at.amount ELSE 0.00 END), 0.00) AS revenue,
+        COALESCE(SUM(CASE WHEN at.transaction_type = 'expense' THEN at.amount ELSE 0.00 END), 0.00) AS expenses
+    FROM DateSeries ds
+    LEFT JOIN acc_transactions at 
+        ON ds.transaction_date = at.transaction_date
+        AND at.is_active = TRUE
+    GROUP BY ds.transaction_date
+),
+InvariantCheck AS (
+    -- Check if Net Profit calculation is consistent
+    SELECT 
+        transaction_date,
+        revenue,
+        expenses,
+        COALESCE(revenue - expenses, 0.00) AS net_profit,
+        CASE 
+            WHEN (revenue - expenses) != (revenue - expenses) THEN COALESCE(revenue - expenses, 0.00)
+            ELSE 0.00
+        END AS invariant_violation
+    FROM DailySummary
+)
+SELECT 
+    transaction_date,
+    revenue,
+    expenses,
+    net_profit,
+    invariant_violation
+FROM InvariantCheck
+ORDER BY transaction_date;
+
+

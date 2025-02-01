@@ -38,7 +38,7 @@ InvariantCheck AS (
         CASE 
             WHEN (revenue - expenses) != (revenue - expenses) THEN COALESCE(revenue - expenses, 0.00)
             ELSE 0.00
-        END AS invariant_violation
+        END AS invariant_mismatch
     FROM DailySummary
 )
 SELECT 
@@ -46,8 +46,6 @@ SELECT
     revenue,
     expenses,
     net_profit,
-    invariant_violation
+    invariant_mismatch
 FROM InvariantCheck
 ORDER BY transaction_date;
-
-

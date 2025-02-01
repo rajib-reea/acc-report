@@ -13,8 +13,17 @@ Account_Transactions_Overview(startDate, endDate):
   7. Store the account transactions data and return the results (overview of account movements by type).
 
 SQL:
+-- Step 0: Generate a series of dates within the specified date range
+WITH DateSeries AS (
+    SELECT generate_series(
+        '2025-01-01'::DATE, 
+        '2025-01-10'::DATE, 
+        INTERVAL '1 day'
+    )::DATE AS transaction_date
+),
+
 -- Step 1: Retrieve all account transactions within the specified date range
-WITH account_transactions AS (
+account_transactions AS (
     SELECT
         t.transaction_id,
         t.transaction_date,
@@ -23,12 +32,16 @@ WITH account_transactions AS (
         a.account_id,
         a.account_name,
         a.account_type -- e.g., 'cash', 'receivables', 'payables'
-    FROM transactions t
+    FROM acc_transactions t
     JOIN accounts a ON t.account_id = a.account_id
-    WHERE t.transaction_date BETWEEN :startDate AND :endDate
+    WHERE t.transaction_date BETWEEN '2025-01-01' AND '2025-01-10'
+    -- Step 5: Validate the transaction data by ensuring no invalid entries (e.g., NULL amounts or missing account_id)
+    AND t.amount IS NOT NULL
+    AND t.transaction_type IN ('debit', 'credit')
+    AND a.account_id IS NOT NULL
 ),
 
--- Step 2: Group transactions by account type or category (e.g., cash, receivables, payables)
+-- Step 2: Group transactions by account type and calculate debits and credits
 account_summary AS (
     SELECT
         at.account_type,
@@ -38,7 +51,7 @@ account_summary AS (
     GROUP BY at.account_type
 )
 
--- Step 3: Calculate net movement for each account type and return overall totals
+-- Step 3: Calculate net movement for each account type
 SELECT
     asummary.account_type,
     asummary.total_debits,
@@ -55,7 +68,3 @@ SELECT
     SUM(asummary.total_credits) - SUM(asummary.total_debits) AS net_movement
 FROM account_summary asummary;
 
--- Step 5: Validate the transaction data (ensure no invalid or missing entries)
--- You can add a validation clause to ensure that there are no invalid or missing entries.
--- For example, if 'amount' is NULL or if there are transactions with missing 'account_id':
--- Add a check for missing or invalid amounts, transaction types, etc.

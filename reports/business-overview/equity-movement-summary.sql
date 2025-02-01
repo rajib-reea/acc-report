@@ -1,7 +1,7 @@
 Note: Opening Equity:= Opening Equity + Adjusted Equity (for all rows except the first).
   Its not implemented yet
   
-| #  | transaction_date | opening_equity | net_income | retained_earnings | new_investments | dividends_paid | adjusted_equity | invariant_check |
+| #  | transaction_date | opening_equity | net_income | retained_earnings | new_investments | dividends_paid | adjusted_equity | invariant_mismatch |
 |----|------------------|----------------|------------|-------------------|-----------------|----------------|-----------------|-----------------|
 | 1  | 2025-01-01       | 0              | 3000.00    | 0                 | 0               | 0              | 3000.00         | 0.00            |
 | 2  | 2025-01-02       | 0              | 0          | 0                 | 0               | 0              | 0               | 0.00            |
@@ -113,7 +113,7 @@ FinalReport AS (
         CASE
             WHEN adjusted_equity != opening_equity + net_income THEN adjusted_equity - (opening_equity + net_income)
             ELSE 0.00
-        END AS invariant_check
+        END AS invariant_mismatch
     FROM EquityMovement
 )
 -- Return the final report with invariant check
@@ -125,7 +125,7 @@ SELECT
     new_investments,
     dividends_paid,
     adjusted_equity,
-    invariant_check
+    invariant_mismatch
 FROM FinalReport
 ORDER BY transaction_date;
 

@@ -17,47 +17,36 @@ Generate the report with a daily breakdown of the cash flow.
 WITH 
 DateSeries AS (
     SELECT generate_series(
-        '2025-01-01'::DATE, 
-        '2025-01-10'::DATE, 
+        '2025-01-01'::DATE,
+        '2025-01-10'::DATE,
         INTERVAL '1 day'
     )::DATE AS transaction_date
 ),
--- Opening Cash Balance (for the first day)
-OpeningBalance AS (
-    SELECT 
-        transaction_date,
-        COALESCE(SUM(amount), 0) AS opening_balance
-    FROM acc_transactions
-    WHERE transaction_date < '2025-01-01'  -- Transactions before the startDate
-      AND transaction_type = 'revenue'  -- Assuming cash balance comes from revenue transactions
-      AND is_active = TRUE
-    GROUP BY transaction_date
-),
 -- Cash inflows for each day: Sales, Loans, Investments, Owner Capital
 Inflows AS (
-    SELECT 
+    SELECT
         transaction_date,
         COALESCE(SUM(amount), 0) AS inflow
     FROM acc_transactions
-    WHERE 
-      is_active = TRUE
-      AND LOWER(category) IN ('sales', 'subscriptions', 'service income', 'loans', 'investments', 'owner capital')  -- Categories for inflows
+    WHERE
+        is_active = TRUE
+        AND LOWER(category) IN ('sales', 'subscriptions', 'service income', 'loans', 'investments', 'owner capital')
     GROUP BY transaction_date
 ),
 -- Cash outflows for each day: Expenses, Loan Payments, Dividends, Taxes Payable, Credit Lines
 Outflows AS (
-    SELECT 
+    SELECT
         transaction_date,
         COALESCE(SUM(amount), 0) AS outflow
     FROM acc_transactions
-    WHERE 
-      is_active = TRUE
-      AND LOWER(category) IN ('operating expenses', 'rent', 'utilities', 'marketing', 'professional services', 'salaries', 'insurance', 'taxes', 'loan payments', 'dividends', 'taxes payable', 'credit lines')  -- Categories for outflows
+    WHERE
+        is_active = TRUE
+        AND LOWER(category) IN ('operating expenses', 'rent', 'utilities', 'marketing', 'professional services', 'salaries', 'insurance', 'taxes', 'loan payments', 'dividends', 'taxes payable', 'credit lines')
     GROUP BY transaction_date
 ),
 -- Net cash flow calculation for each day
 NetCashFlow AS (
-    SELECT 
+    SELECT
         D.transaction_date,
         COALESCE(I.inflow, 0) AS inflows,
         COALESCE(O.outflow, 0) AS outflows,
@@ -66,29 +55,69 @@ NetCashFlow AS (
     LEFT JOIN Inflows I ON D.transaction_date = I.transaction_date
     LEFT JOIN Outflows O ON D.transaction_date = O.transaction_date
 ),
--- Closing Cash Balance for each day
+-- Calculate the cumulative sum of net cash flow to get the closing balance
 ClosingBalance AS (
-    SELECT 
+    SELECT
+        transaction_date,
+        SUM(net_cash_flow) OVER (ORDER BY transaction_date) AS closing_balance
+    FROM NetCashFlow
+),
+-- Get the initial opening balance (if available)
+InitialOpeningBalance AS (
+    SELECT
+        transaction_date,
+        COALESCE(SUM(amount), 0) AS opening_balance
+    FROM acc_transactions
+    WHERE transaction_date < '2025-01-01'
+        AND transaction_type = 'revenue'
+        AND is_active = TRUE
+    GROUP BY transaction_date
+),
+-- Combine opening balance with closing balance
+CombinedBalance AS (
+    SELECT
         N.transaction_date,
-        -- Fetch the opening balance from OpeningBalance or default to 0 if none exists
-        (SELECT COALESCE(opening_balance, 0) FROM OpeningBalance WHERE transaction_date = N.transaction_date) 
-        + N.net_cash_flow AS closing_balance
+        COALESCE(I.opening_balance, 0) AS initial_opening_balance,
+        N.net_cash_flow,
+        C.closing_balance
     FROM NetCashFlow N
-)
+    LEFT JOIN InitialOpeningBalance I ON N.transaction_date = I.transaction_date
+    LEFT JOIN ClosingBalance C ON N.transaction_date = C.transaction_date
+),
+-- Calculate the final opening balance for each day
+FinalOpeningBalance AS (
+    SELECT
+        transaction_date,
+        LAG(closing_balance, 1, initial_opening_balance) OVER (ORDER BY transaction_date) AS opening_balance 
+    FROM CombinedBalance
+),
 -- Final Report: Day-wise breakdown of Cash Flow
-SELECT 
-    N.transaction_date,
-    COALESCE(O.opening_balance, 0) AS opening_balance,
-    N.inflows,
-    N.outflows,
-    N.net_cash_flow,
-    COALESCE(C.closing_balance, 0) AS closing_balance,  -- Ensure closing balance is not null
-    -- Calculate the expected closing balance (opening_balance + net_cash_flow)
-    (COALESCE(O.opening_balance, 0) + N.net_cash_flow) AS expected_closing_balance,
-    -- Calculate invariant mismatch (closing_balance - expected_closing_balance)
-    COALESCE(C.closing_balance, 0) - (COALESCE(O.opening_balance, 0) + N.net_cash_flow) AS invariant_mismatch
-FROM NetCashFlow N
-LEFT JOIN OpeningBalance O ON N.transaction_date = O.transaction_date
-LEFT JOIN ClosingBalance C ON N.transaction_date = C.transaction_date
-ORDER BY N.transaction_date;
+FinalReport AS (
+    SELECT
+        F.transaction_date,
+        F.opening_balance,
+        N.inflows,
+        N.outflows,
+        N.net_cash_flow,
+        C.closing_balance,
+        (F.opening_balance + N.net_cash_flow) AS calculated_closing_balance
+    FROM NetCashFlow N
+    JOIN FinalOpeningBalance F ON N.transaction_date = F.transaction_date
+    JOIN ClosingBalance C ON N.transaction_date = C.transaction_date
+)
+-- Add invariant_mismatch check
+SELECT
+    transaction_date,
+    opening_balance,
+    inflows,
+    outflows,
+    net_cash_flow,
+    closing_balance,
+    calculated_closing_balance,
+    CASE
+        WHEN closing_balance != calculated_closing_balance THEN 'invariant_mismatch'
+        ELSE 'consistent'
+    END AS invariant_check
+FROM FinalReport
+ORDER BY transaction_date;
 

@@ -64,21 +64,18 @@ Calculated AS (
         transaction_date,
         revenue,
         cogs,
-        (revenue - cogs) AS gross_profit,
+        (COALESCE(revenue, 0) - COALESCE(cogs, 0)) AS gross_profit,
         operating_expenses,
-        (revenue - cogs - operating_expenses) AS operating_profit,
+        (COALESCE(revenue, 0) - COALESCE(cogs, 0) - COALESCE(operating_expenses, 0)) AS operating_profit,
         taxes,
-        (revenue - cogs - operating_expenses - taxes) AS net_profit
+        (COALESCE(revenue, 0) - COALESCE(cogs, 0) - COALESCE(operating_expenses, 0) - COALESCE(taxes, 0)) AS net_profit
     FROM Aggregated
 ),
 InvariantCheck AS (
     -- Invariant: Gross Profit + Operating Expenses + Taxes should equal Total Revenue
     SELECT 
         transaction_date,
-        CASE 
-            WHEN gross_profit + operating_expenses + taxes != revenue 
-            THEN gross_profit + operating_expenses + taxes - revenue 
-            ELSE 0.00 END AS invariant_mismatch
+        ABS(COALESCE(gross_profit, 0) + COALESCE(operating_expenses, 0) + COALESCE(taxes, 0) - COALESCE(revenue, 0)) AS invariant_mismatch
     FROM Calculated
 )
 SELECT 
@@ -92,6 +89,7 @@ SELECT
     c.net_profit,
     i.invariant_mismatch
 FROM Calculated c
-JOIN InvariantCheck i ON c.transaction_date = i.transaction_date
+LEFT JOIN InvariantCheck i ON c.transaction_date = i.transaction_date
 ORDER BY c.transaction_date;
+
 

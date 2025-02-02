@@ -31,7 +31,7 @@ WITH DateSeries AS (
 ),
 
 -- Step 1: Retrieve all account transactions within the specified date range
-account_transactions AS (
+AccountTransactions AS (
     SELECT
         t.id,
         t.transaction_date,
@@ -50,12 +50,12 @@ account_transactions AS (
 ),
 
 -- Step 2: Group transactions by account type and calculate revenues and expenses
-account_summary AS (
+AccountSummary AS (
     SELECT
         at.account_type,
         SUM(CASE WHEN at.transaction_type = 'revenue' THEN at.amount ELSE 0 END) AS total_revenues,
         SUM(CASE WHEN at.transaction_type = 'expense' THEN at.amount ELSE 0 END) AS total_expenses
-    FROM account_transactions at
+    FROM AccountTransactions at
     GROUP BY at.account_type
 )
 
@@ -65,7 +65,7 @@ SELECT
     asummary.total_revenues,
     asummary.total_expenses,
     (asummary.total_expenses - asummary.total_revenues) AS net_movement
-FROM account_summary asummary
+FROM AccountSummary asummary
 
 -- Step 4: Calculate the overall total revenues and expenses across all account types
 UNION ALL
@@ -74,7 +74,4 @@ SELECT
     SUM(asummary.total_revenues) AS total_revenues,
     SUM(asummary.total_expenses) AS total_expenses,
     SUM(asummary.total_expenses) - SUM(asummary.total_revenues) AS net_movement
-FROM account_summary asummary;
-    SUM(asummary.total_credits) - SUM(asummary.total_debits) AS net_movement
-FROM account_summary asummary;
-
+FROM AccountSummary asummary;

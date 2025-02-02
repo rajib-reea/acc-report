@@ -1,3 +1,4 @@
+drop table if exists acc_accounts;
 CREATE TABLE acc_accounts (
     account_id SERIAL PRIMARY KEY,        -- Auto-incremented account ID
     account_name VARCHAR(255) NOT NULL,    -- Account name (e.g., 'Cash', 'Accounts Receivable')
@@ -12,7 +13,7 @@ INSERT INTO acc_accounts (account_name, account_type, category) VALUES
     ('Revenue', 'income', 'revenue'),
     ('Expenses', 'expense', 'operating expense');
 
-
+drop table if exists acc_transactions;
 CREATE TABLE acc_transactions (
     id SERIAL PRIMARY KEY,
     user_id INT NOT NULL, -- Added user_id

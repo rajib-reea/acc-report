@@ -1,35 +1,36 @@
-| #  | summary_type              | transaction_id | transaction_date | transaction_type | amount  | account_id | reconciliation_status |
-|----|---------------------------|----------------|------------------|------------------|---------|------------|-----------------------|
-| 1  | Unmatched Ledger Transactions | 1              | 2025-01-01       | revenue          | 1500.00 | 1          | unmatched             |
-| 2  | Unmatched Ledger Transactions | 2              | 2025-01-02       | expense          | 200.00  | 2          | unmatched             |
-| 3  | Unmatched Ledger Transactions | 3              | 2025-01-03       | revenue          | 2500.00 | 1          | unmatched             |
-| 4  | Unmatched Ledger Transactions | 4              | 2025-01-04       | expense          | 1200.00 | 3          | unmatched             |
-| 5  | Unmatched Ledger Transactions | 5              | 2025-01-05       | revenue          | 1000.00 | 2          | unmatched             |
-| 6  | Unmatched Ledger Transactions | 6              | 2025-01-06       | expense          | 150.00  | 3          | unmatched             |
-| 7  | Unmatched Ledger Transactions | 7              | 2025-01-07       | expense          | 500.00  | 4          | unmatched             |
-| 8  | Unmatched Ledger Transactions | 8              | 2025-01-08       | revenue          | 1800.00 | 1          | unmatched             |
-| 9  | Unmatched Ledger Transactions | 9              | 2025-01-09       | expense          | 750.00  | 2          | unmatched             |
-| 10 | Unmatched Ledger Transactions | 10             | 2025-01-10       | revenue          | 3000.00 | 1          | unmatched             |
-| 11 | Discrepancies               |                |                  |                  |         |            | discrepancy           |
-| 12 | Discrepancies               |                |                  |                  |         |            | discrepancy           |
-| 13 | Discrepancies               |                |                  |                  |         |            | discrepancy           |
-| 14 | Discrepancies               |                |                  |                  |         |            | discrepancy           |
-| 15 | Discrepancies               |                |                  |                  |         |            | discrepancy           |
-| 16 | Discrepancies               |                |                  |                  |         |            | discrepancy           |
-| 17 | Discrepancies               |                |                  |                  |         |            | discrepancy           |
-| 18 | Discrepancies               |                |                  |                  |         |            | discrepancy           |
-| 19 | Discrepancies               |                |                  |                  |         |            | discrepancy           |
-| 20 | Discrepancies               |                |                  |                  |         |            | discrepancy           |
-| 21 | Reconciliation Status       |                | 2025-01-04       |                  |         |            | Pending               |
-| 22 | Reconciliation Status       |                | 2025-01-09       |                  |         |            | Pending               |
-| 23 | Reconciliation Status       |                | 2025-01-08       |                  |         |            | Pending               |
-| 24 | Reconciliation Status       |                | 2025-01-02       |                  |         |            | Pending               |
-| 25 | Reconciliation Status       |                | 2025-01-01       |                  |         |            | Pending               |
-| 26 | Reconciliation Status       |                | 2025-01-10       |                  |         |            | Pending               |
-| 27 | Reconciliation Status       |                | 2025-01-07       |                  |         |            | Pending               |
-| 28 | Reconciliation Status       |                | 2025-01-05       |                  |         |            | Pending               |
-| 29 | Reconciliation Status       |                | 2025-01-03       |                  |         |            | Pending               |
-| 30 | Reconciliation Status       |                | 2025-01-06       |                  |         |            | Pending               |
+| #  | summary_type               | transaction_id | transaction_date | transaction_type | amount   | account_id | reconciliation_status |
+|----|----------------------------|----------------|------------------|------------------|----------|------------|-----------------------|
+| 1  | Unmatched Ledger Transactions | 1              | 2025-01-01       | revenue          | 1500.00  | 1          | unmatched             |
+| 2  | Unmatched Ledger Transactions | 2              | 2025-01-02       | expense          | 200.00   | 2          | unmatched             |
+| 3  | Unmatched Ledger Transactions | 3              | 2025-01-03       | revenue          | 2500.00  | 1          | unmatched             |
+| 4  | Unmatched Ledger Transactions | 4              | 2025-01-04       | expense          | 1200.00  | 3          | unmatched             |
+| 5  | Unmatched Ledger Transactions | 5              | 2025-01-05       | revenue          | 1000.00  | 2          | unmatched             |
+| 6  | Unmatched Ledger Transactions | 6              | 2025-01-06       | expense          | 150.00   | 3          | unmatched             |
+| 7  | Unmatched Ledger Transactions | 7              | 2025-01-07       | expense          | 500.00   | 4          | unmatched             |
+| 8  | Unmatched Ledger Transactions | 8              | 2025-01-08       | revenue          | 1800.00  | 1          | unmatched             |
+| 9  | Unmatched Ledger Transactions | 9              | 2025-01-09       | expense          | 750.00   | 2          | unmatched             |
+| 10 | Unmatched Ledger Transactions | 10             | 2025-01-10       | revenue          | 3000.00  | 1          | unmatched             |
+| 11 | Discrepancies                |                |                  |                  |          |            | discrepancy           |
+| 12 | Discrepancies                |                |                  |                  |          |            | discrepancy           |
+| 13 | Discrepancies                |                |                  |                  |          |            | discrepancy           |
+| 14 | Discrepancies                |                |                  |                  |          |            | discrepancy           |
+| 15 | Discrepancies                |                |                  |                  |          |            | discrepancy           |
+| 16 | Discrepancies                |                |                  |                  |          |            | discrepancy           |
+| 17 | Discrepancies                |                |                  |                  |          |            | discrepancy           |
+| 18 | Discrepancies                |                |                  |                  |          |            | discrepancy           |
+| 19 | Discrepancies                |                |                  |                  |          |            | discrepancy           |
+| 20 | Discrepancies                |                |                  |                  |          |            | discrepancy           |
+| 21 | Reconciliation Status        |                | 2025-01-04       |                  |          |            | Pending               |
+| 22 | Reconciliation Status        |                | 2025-01-09       |                  |          |            | Pending               |
+| 23 | Reconciliation Status        |                | 2025-01-08       |                  |          |            | Pending               |
+| 24 | Reconciliation Status        |                | 2025-01-02       |                  |          |            | Pending               |
+| 25 | Reconciliation Status        |                | 2025-01-01       |                  |          |            | Pending               |
+| 26 | Reconciliation Status        |                | 2025-01-10       |                  |          |            | Pending               |
+| 27 | Reconciliation Status        |                | 2025-01-07       |                  |          |            | Pending               |
+| 28 | Reconciliation Status        |                | 2025-01-05       |                  |          |            | Pending               |
+| 29 | Reconciliation Status        |                | 2025-01-03       |                  |          |            | Pending               |
+| 30 | Reconciliation Status        |                | 2025-01-06       |                  |          |            | Pending               |
+
 
 Algorithm:
   
@@ -57,6 +58,7 @@ Account_Reconciliation_Status(startDate, endDate):
  SQL: 
 
 WITH DateSeries AS (
+    -- Generate a series of dates from 2025-01-01 to 2025-01-10 (daily)
     SELECT generate_series(
         '2025-01-01'::DATE, 
         '2025-01-10'::DATE, 
@@ -65,20 +67,25 @@ WITH DateSeries AS (
 ),
 
 BankTransactions AS (
+    -- Retrieve Bank Transactions for the date range
     SELECT
         bt.transaction_id,
         bt.transaction_date,
-        bt.transaction_type,           bt.amount,
+        bt.transaction_type,
+        bt.amount,
         bt.account_id,
-        bt.transaction_status      FROM acc_bank_transactions bt
+        bt.transaction_status
+    FROM acc_bank_transactions bt
     WHERE bt.transaction_date BETWEEN '2025-01-01' AND '2025-01-10'
 ),
 
 LedgerTransactions AS (
+    -- Retrieve Ledger Transactions for the date range
     SELECT
         lt.id AS transaction_id,
         lt.transaction_date,
-        lt.transaction_type,           lt.amount,
+        lt.transaction_type,
+        lt.amount,
         lt.account_id,
         CASE
             WHEN lt.is_reconciled THEN 'matched'
@@ -89,6 +96,7 @@ LedgerTransactions AS (
 ),
 
 MatchedTransactions AS (
+    -- Match Bank and Ledger transactions based on type, amount, and date
     SELECT
         bt.transaction_id AS bank_transaction_id,
         lt.transaction_id AS ledger_transaction_id,
@@ -106,6 +114,7 @@ MatchedTransactions AS (
 ),
 
 UnmatchedBankTransactions AS (
+    -- Identify Bank Transactions that have not been matched
     SELECT
         bt.transaction_id,
         bt.transaction_date,
@@ -120,6 +129,7 @@ UnmatchedBankTransactions AS (
 ),
 
 UnmatchedLedgerTransactions AS (
+    -- Identify Ledger Transactions that have not been matched
     SELECT
         lt.transaction_id,
         lt.transaction_date,
@@ -134,6 +144,7 @@ UnmatchedLedgerTransactions AS (
 ),
 
 Discrepancies AS (
+    -- Identify discrepancies where amounts do not match or transactions are missing
     SELECT
         bt.transaction_id AS bank_transaction_id,
         lt.transaction_id AS ledger_transaction_id,
@@ -154,6 +165,7 @@ Discrepancies AS (
 ),
 
 ReconciliationSummary AS (
+    -- Track reconciliation progress for each date
     SELECT
         ds.transaction_date,
         CASE
@@ -166,6 +178,7 @@ ReconciliationSummary AS (
     GROUP BY ds.transaction_date
 )
 
+-- Union all the results to generate the summary for each day
 SELECT
     'Matched Transactions' AS summary_type,
     mt.bank_transaction_id AS transaction_id,
@@ -214,4 +227,4 @@ SELECT
     NULL AS amount,
     NULL AS account_id,
     rs.reconciliation_status
-FROM ReconciliationSummary rs
+FROM ReconciliationSummary rs;

@@ -22,7 +22,17 @@ The **Accounting Reports Microservice** provides financial reporting capabilitie
 #### Assets Categories: [sales, subscriptions, service income, operating expenses, rent, utilities, marketing, professional services, salaries, insurance, taxes, inventory, accounts receivable (ar), fixed assets, intangible assets]
 #### Equity Category: [owner capital]
 
-
+```
+Day Range Selection:
+WITH date_series AS (
+    SELECT :startDate + INTERVAL (n - 1) DAY AS report_date
+    FROM (
+        SELECT ROW_NUMBER() OVER () AS n
+        FROM information_schema.tables
+        LIMIT DATEDIFF(:endDate, :startDate) + 1
+    ) numbers
+),
+```
 
 ## Report Algorithms & Queries
 

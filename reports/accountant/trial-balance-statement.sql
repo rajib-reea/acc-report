@@ -18,7 +18,7 @@ Algorithm:
   8. Store the trial balance statement and return the results (detailed listing of accounts, debits, credits, and balance check).
 
   SQL:
--- Step 0: Generate the date series for the specified date range (optional for date grouping)
+  
 WITH DateSeries AS (
     SELECT generate_series(
         '2025-01-01'::DATE,  -- Start Date
@@ -44,7 +44,7 @@ ledger_entries AS (
         t.transaction_date
     FROM acc_transactions t
     JOIN acc_accounts a ON t.account_id = a.account_id
-    WHERE t.transaction_date BETWEEN '2025-01-01' AND '2025-01-10' -- use the date range dynamically if needed
+    WHERE t.transaction_date BETWEEN '2025-01-01' AND '2025-01-10' -- Invariant 1: Ensure valid transaction dates
 ),
 
 -- Step 2: Extract balance (debit or credit) and calculate total debits and credits for each account
@@ -56,7 +56,7 @@ account_balances AS (
         SUM(le.credit_amount) AS total_credits,
         le.account_category
     FROM ledger_entries le
-    GROUP BY le.account_number, le.account_name, le.account_category
+    GROUP BY le.account_number, le.account_name, le.account_category -- Invariant 6: Group by unique account/category
 ),
 
 -- Step 3: Calculate total debits and credits across all accounts
@@ -86,7 +86,7 @@ FROM account_balances ab
 GROUP BY ab.account_category
 
 -- Step 6: Validate the trial balance data (ensure no incorrect or missing entries)
-HAVING SUM(ab.total_debits) >= 0 AND SUM(ab.total_credits) >= 0
+HAVING SUM(ab.total_debits) >= 0 AND SUM(ab.total_credits) >= 0 -- Invariant 3: Non-negative debits/credits
 
 -- Step 7: Return results: Include detailed listing of accounts, debits, credits, balance check
 ORDER BY ab.account_category;

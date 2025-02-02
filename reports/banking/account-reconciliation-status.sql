@@ -26,8 +26,17 @@ Account_Reconciliation_Status(startDate, endDate):
 \set startDate '2025-01-01'
 \set endDate '2025-01-31'
 
-WITH BankTransactions AS (
-    -- Step 1: Retrieve all banking transactions within the specified date range
+WITH DateSeries AS (
+    -- Step 1: Generate a date series for the entire range
+    SELECT generate_series(
+        '2025-01-01'::DATE, 
+        '2025-01-10'::DATE, 
+        INTERVAL '1 day'
+    )::DATE AS transaction_date
+),
+
+-- Step 1: Retrieve all banking transactions within the specified date range
+BankTransactions AS (
     SELECT
         bt.transaction_id,
         bt.transaction_date,
@@ -35,23 +44,25 @@ WITH BankTransactions AS (
         bt.amount,
         bt.account_id,
         bt.transaction_status  -- 'matched', 'unmatched', 'pending'
-    FROM bank_transactions bt
-    WHERE bt.transaction_date BETWEEN :startDate AND :endDate
+    FROM acc_bank_transactions bt
+    WHERE bt.transaction_date BETWEEN  '2025-01-01' AND '2025-01-10'
 ),
+
+-- Step 2: Retrieve the general ledger or internal accounting records for the same date range
 LedgerTransactions AS (
-    -- Step 2: Retrieve the general ledger or internal accounting records for the same date range
     SELECT
-        lt.transaction_id,
+        lt.id,
         lt.transaction_date,
         lt.transaction_type,   -- 'deposit', 'withdrawal', 'transfer'
         lt.amount,
         lt.account_id,
         lt.transaction_status  -- 'matched', 'unmatched', 'pending'
-    FROM general_ledger lt
-    WHERE lt.transaction_date BETWEEN :startDate AND :endDate
+    FROM acc_accounts lt
+    WHERE lt.transaction_date BETWEEN '2025-01-01' AND '2025-01-10'
 ),
+
+-- Step 3: Compare bank transactions to the general ledger records (matching deposits, withdrawals, and transfers)
 MatchedTransactions AS (
-    -- Step 3: Compare bank transactions to the general ledger records (matching deposits, withdrawals, and transfers)
     SELECT
         bt.transaction_id AS bank_transaction_id,
         lt.transaction_id AS ledger_transaction_id,
@@ -67,8 +78,9 @@ MatchedTransactions AS (
         AND bt.transaction_date = lt.transaction_date
         AND bt.account_id = lt.account_id
 ),
+
+-- Step 4: Identify unmatched bank transactions (deposits, withdrawals, transfers)
 UnmatchedBankTransactions AS (
-    -- Step 4: Identify unmatched bank transactions (deposits, withdrawals, transfers)
     SELECT
         bt.transaction_id,
         bt.transaction_date,
@@ -81,8 +93,9 @@ UnmatchedBankTransactions AS (
         ON bt.transaction_id = mt.bank_transaction_id
     WHERE mt.bank_transaction_id IS NULL
 ),
+
+-- Step 5: Identify unmatched ledger transactions
 UnmatchedLedgerTransactions AS (
-    -- Step 4: Identify unmatched ledger transactions
     SELECT
         lt.transaction_id,
         lt.transaction_date,
@@ -95,8 +108,9 @@ UnmatchedLedgerTransactions AS (
         ON lt.transaction_id = mt.ledger_transaction_id
     WHERE mt.ledger_transaction_id IS NULL
 ),
+
+-- Step 6: Identify discrepancies between bank transactions and general ledger entries
 Discrepancies AS (
-    -- Step 5: Identify discrepancies between bank transactions and general ledger entries
     SELECT
         bt.transaction_id AS bank_transaction_id,
         lt.transaction_id AS ledger_transaction_id,
@@ -113,19 +127,22 @@ Discrepancies AS (
         AND bt.transaction_date = lt.transaction_date
     WHERE bt.amount <> lt.amount
 ),
+
+-- Step 7: Track reconciliation progress (completed/incomplete) for each day
 ReconciliationSummary AS (
-    -- Step 6: Track reconciliation progress (completed/incomplete)
     SELECT
+        ds.transaction_date,
         CASE
             WHEN COUNT(bt.transaction_id) = 0 AND COUNT(lt.transaction_id) = 0 THEN 'Completed'
             ELSE 'Pending'
         END AS reconciliation_status
-    FROM BankTransactions bt
-    FULL OUTER JOIN LedgerTransactions lt
-        ON bt.transaction_id = lt.transaction_id
-    WHERE bt.transaction_date BETWEEN :startDate AND :endDate
+    FROM DateSeries ds
+    LEFT JOIN BankTransactions bt ON ds.transaction_date = bt.transaction_date
+    LEFT JOIN LedgerTransactions lt ON ds.transaction_date = lt.transaction_date
+    GROUP BY ds.transaction_date
 )
--- Step 8: Generate a detailed summary: matched transactions, unmatched transactions, and discrepancies
+
+-- Step 8: Generate a detailed summary: matched transactions, unmatched transactions, discrepancies
 SELECT
     'Matched Transactions' AS summary_type,
     mt.bank_transaction_id AS transaction_id,

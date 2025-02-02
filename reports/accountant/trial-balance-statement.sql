@@ -1,3 +1,8 @@
+| #  | Account Category    | Category Total Debits | Category Total Credits | Net Balance |
+|----|---------------------|-----------------------|------------------------|-------------|
+| 1  | Current Asset       | 1450.00               | 9800.00                | 8350.00     |
+| 2  | Current Liability   | 1350.00               | 0                      | -1350.00    |
+
 Algorithm:
   
   Trial_Balance_Statement(startDate, endDate):
@@ -13,17 +18,33 @@ Algorithm:
   8. Store the trial balance statement and return the results (detailed listing of accounts, debits, credits, and balance check).
 
   SQL:
+-- Step 0: Generate the date series for the specified date range (optional for date grouping)
+WITH DateSeries AS (
+    SELECT generate_series(
+        '2025-01-01'::DATE,  -- Start Date
+        '2025-01-10'::DATE,  -- End Date
+        INTERVAL '1 day'
+    )::DATE AS transaction_date
+),
+
 -- Step 1: Retrieve all ledger accounts and their balances for the specified date range
-WITH ledger_entries AS (
+ledger_entries AS (
     SELECT
-        le.account_number,
-        le.account_name,
-        le.debit_amount,
-        le.credit_amount,
-        le.account_category, -- e.g., 'assets', 'liabilities', 'equity', 'revenue', 'expenses'
-        le.transaction_date
-    FROM ledger_entries_table le
-    WHERE le.transaction_date BETWEEN :startDate AND :endDate
+        a.account_id AS account_number,
+        a.account_name,
+        CASE 
+            WHEN t.transaction_type = 'expense' THEN t.amount 
+            ELSE 0 
+        END AS debit_amount,
+        CASE 
+            WHEN t.transaction_type = 'revenue' THEN t.amount 
+            ELSE 0 
+        END AS credit_amount,
+        a.category AS account_category, -- e.g., 'current asset', 'liability', etc.
+        t.transaction_date
+    FROM acc_transactions t
+    JOIN acc_accounts a ON t.account_id = a.account_id
+    WHERE t.transaction_date BETWEEN '2025-01-01' AND '2025-01-10' -- use the date range dynamically if needed
 ),
 
 -- Step 2: Extract balance (debit or credit) and calculate total debits and credits for each account

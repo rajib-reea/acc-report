@@ -1,3 +1,21 @@
+| #  | Transaction Date | Category           | Budgeted Amount | Actual Amount | Variance  | Percentage Variance | Category Type |
+|----|----------------|--------------------|----------------|--------------|----------|---------------------|--------------|
+| 1  | 2025-01-01     | Cost of Goods Sold | 1500.00       | 0.00         | -1500.00  | -100.00%            | Expenses     |
+| 2  | 2025-01-01     | Expenses           | 2000.00       | 0.00         | -2000.00  | -100.00%            | Expenses     |
+| 3  | 2025-01-01     | Revenue            | 5000.00       | 0.00         | -5000.00  | -100.00%            | Revenue      |
+| 4  | 2025-01-01     | Sales              | 3000.00       | 0.00         | -3000.00  | -100.00%            | Revenue      |
+| 5  | 2025-01-01     | Total              | 11500.00      | 0.00         | -11500.00 | -100.00%            | Summary      |
+| 6  | 2025-01-02     | Cost of Goods Sold | 1500.00       | 0.00         | -1500.00  | -100.00%            | Expenses     |
+| 7  | 2025-01-02     | Expenses           | 2000.00       | 0.00         | -2000.00  | -100.00%            | Expenses     |
+| 8  | 2025-01-02     | Revenue            | 5000.00       | 0.00         | -5000.00  | -100.00%            | Revenue      |
+| 9  | 2025-01-02     | Sales              | 3000.00       | 0.00         | -3000.00  | -100.00%            | Revenue      |
+| 10 | 2025-01-02     | Total              | 11500.00      | 0.00         | -11500.00 | -100.00%            | Summary      |
+| 11 | 2025-01-03     | Cost of Goods Sold | 1500.00       | 0.00         | -1500.00  | -100.00%            | Expenses     |
+| 12 | 2025-01-03     | Expenses           | 2000.00       | 0.00         | -2000.00  | -100.00%            | Expenses     |
+| 13 | 2025-01-03     | Revenue            | 5000.00       | 0.00         | -5000.00  | -100.00%            | Revenue      |
+| 14 | 2025-01-03     | Sales              | 3000.00       | 0.00         | -3000.00  | -100.00%            | Revenue      |
+| 15 | 2025-01-03     | Total              | 11500.00      | 0.00         | -11500.00 | -100.00%            | Summary      |
+
 Algorithm:
   
 Budget_vs_Actuals_Report(startDate, endDate):
@@ -22,53 +40,70 @@ Budget_vs_Actuals_Report(startDate, endDate):
      - Optionally, include a summary of total budget, total actuals, and overall variance.
 
  SQL: 
--- Step 1: Retrieve the planned budget data for the specified date range
-WITH budget_data AS (
-    SELECT
-        b.category,
-        b.budgeted_amount
-    FROM budget_table b
-    WHERE b.period_start_date >= :startDate AND b.period_end_date <= :endDate
+WITH DateSeries AS (
+    -- Generate a daily date range within the specified period
+    SELECT generate_series(
+        '2025-01-01'::DATE, 
+        '2025-01-10'::DATE, 
+        INTERVAL '1 day'
+    )::DATE AS transaction_date
 ),
 
--- Step 2: Retrieve the actual financial data for the specified date range
+-- Step 1: Retrieve daily planned budget data
+budget_data AS (
+    SELECT
+        d.transaction_date,
+        b.category,
+        COALESCE(b.daily_budgeted_amount, 0) AS budgeted_amount
+    FROM DateSeries d
+    LEFT JOIN acc_budgets b 
+        ON d.transaction_date BETWEEN b.period_start_date AND b.period_end_date
+),
+
+-- Step 2: Retrieve actual financial data per day
 actuals_data AS (
     SELECT
+        t.transaction_date,
         a.category,
-        SUM(a.actual_amount) AS actual_amount
-    FROM actuals_table a
-    WHERE a.transaction_date >= :startDate AND a.transaction_date <= :endDate
-    GROUP BY a.category
+        SUM(t.amount) AS actual_amount
+    FROM acc_transactions t
+    JOIN acc_accounts a ON t.account_id = a.account_id
+    WHERE t.transaction_date BETWEEN '2025-01-01' AND '2025-01-10'
+    GROUP BY t.transaction_date, a.category
 ),
 
--- Step 3: Compare the budgeted amounts to the actual amounts for each category and calculate the variance
+-- Step 3: Compute variance and handle missing actuals
 variance_data AS (
     SELECT
+        b.transaction_date,
         b.category,
         b.budgeted_amount,
         COALESCE(a.actual_amount, 0) AS actual_amount,
         COALESCE(a.actual_amount, 0) - b.budgeted_amount AS variance
     FROM budget_data b
-    LEFT JOIN actuals_data a ON b.category = a.category
+    LEFT JOIN actuals_data a 
+        ON b.transaction_date = a.transaction_date AND b.category = a.category
 ),
 
--- Step 4: Calculate the percentage variance for each category
+-- Step 4: Compute percentage variance (handling division by zero)
 percentage_variance_data AS (
     SELECT
+        transaction_date,
         category,
         budgeted_amount,
         actual_amount,
         variance,
-        CASE
+        CASE 
             WHEN budgeted_amount != 0 THEN (variance / budgeted_amount) * 100
             ELSE 0
         END AS percentage_variance
     FROM variance_data
 ),
 
--- Step 5: Optionally, categorize the results by type (e.g., revenue, expenses)
+-- Step 5: Categorize financial data
 categorized_results AS (
     SELECT
+        transaction_date,
         category,
         budgeted_amount,
         actual_amount,
@@ -82,17 +117,20 @@ categorized_results AS (
     FROM percentage_variance_data
 ),
 
--- Step 6: Calculate cumulative totals for both budgeted and actual amounts
+-- Step 6: Compute cumulative totals per day
 totals AS (
     SELECT
+        transaction_date,
         SUM(budgeted_amount) AS total_budget,
         SUM(actual_amount) AS total_actuals,
         SUM(actual_amount) - SUM(budgeted_amount) AS cumulative_variance
     FROM percentage_variance_data
+    GROUP BY transaction_date
 )
 
--- Step 7: Identify categories where the variance is significant (e.g., over-budget or under-budget by a certain threshold)
+-- Step 7: Identify significant variances per day and return results
 SELECT
+    transaction_date,
     category,
     budgeted_amount,
     actual_amount,
@@ -100,12 +138,13 @@ SELECT
     percentage_variance,
     category_type
 FROM categorized_results
-WHERE ABS(variance) > 1000  -- Example threshold for significant variance
+WHERE ABS(variance) > 1000  -- Significant variance threshold
 
 UNION ALL
 
--- Step 8: Return the overall totals and summary
+-- Step 8: Return daily summary totals
 SELECT
+    transaction_date,
     'Total' AS category,
     total_budget,
     total_actuals,
@@ -116,4 +155,4 @@ SELECT
     END AS percentage_variance,
     'Summary' AS category_type
 FROM totals
-ORDER BY category;
+ORDER BY transaction_date, category;

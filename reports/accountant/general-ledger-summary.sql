@@ -14,22 +14,38 @@ General_Ledger_Summary(startDate, endDate):
   8. Store the general ledger summary data and return the results (summary of accounts with their balances).
 
  SQL: 
--- Step 1: Retrieve all ledger entries within the specified date range
-WITH ledger_entries AS (
-    SELECT
-        le.ledger_id,
-        le.account_id,
-        a.account_name,
-        a.account_type,  -- e.g., 'assets', 'liabilities', 'equity'
-        le.transaction_date,
-        le.debit_amount,
-        le.credit_amount
-    FROM general_ledger le
-    JOIN accounts a ON le.account_id = a.account_id
-    WHERE le.transaction_date BETWEEN :startDate AND :endDate
+WITH DateSeries AS (
+    SELECT generate_series(
+        '2025-01-01'::DATE,  -- Start Date
+        '2025-01-10'::DATE,  -- End Date
+        INTERVAL '1 day'
+    )::DATE AS transaction_date
 ),
 
--- Step 2: Group the entries by account type
+-- Step 1: Retrieve all ledger entries within the specified date range
+ledger_entries AS (
+    SELECT
+        at.id AS transaction_id,
+        at.account_id,
+        aa.account_name,
+        aa.account_type,  -- e.g., 'cash', 'receivables', 'payables'
+        at.transaction_date,
+        at.transaction_type,  -- 'revenue' or 'expense'
+        at.amount,
+        CASE
+            WHEN at.transaction_type = 'revenue' THEN at.amount
+            ELSE 0
+        END AS credit_amount,
+        CASE
+            WHEN at.transaction_type = 'expense' THEN at.amount
+            ELSE 0
+        END AS debit_amount
+    FROM acc_transactions at
+    JOIN acc_accounts aa ON at.account_id = aa.account_id
+    WHERE at.transaction_date BETWEEN '2025-01-01' AND '2025-01-10'
+),
+
+-- Step 2: Group the entries by account type and calculate total debits and credits for each account type
 account_classification AS (
     SELECT
         le.account_type,
@@ -37,24 +53,47 @@ account_classification AS (
         SUM(le.credit_amount) AS total_credits
     FROM ledger_entries le
     GROUP BY le.account_type
-)
+),
 
--- Step 3: Optionally calculate the net balance for each account type
-SELECT
-    ac.account_type,
-    ac.total_debits,
-    ac.total_credits,
-    (ac.total_credits - ac.total_debits) AS net_balance
-FROM account_classification ac
+-- Step 3: Calculate the net balance for each account type
+account_balances AS (
+    SELECT
+        ac.account_type,
+        ac.total_debits,
+        ac.total_credits,
+        (ac.total_credits - ac.total_debits) AS net_balance
+    FROM account_classification ac
+),
 
 -- Step 4: Calculate the overall totals for debits and credits across all account types
-UNION ALL
-SELECT
-    'Total' AS account_type,
-    SUM(ac.total_debits) AS total_debits,
-    SUM(ac.total_credits) AS total_credits,
-    SUM(ac.total_credits) - SUM(ac.total_debits) AS net_balance
-FROM account_classification ac;
+overall_totals AS (
+    SELECT
+        'Total' AS account_type,
+        SUM(ac.total_debits) AS total_debits,
+        SUM(ac.total_credits) AS total_credits,
+        SUM(ac.total_credits) - SUM(ac.total_debits) AS net_balance
+    FROM account_classification ac
+),
 
--- Step 5: Validate the data (ensure no missing or incorrect entries)
--- Example: You can add additional validation for missing or negative values.
+-- Step 5: Combine account balances and overall totals
+final_report AS (
+    SELECT
+        ab.account_type,
+        ab.total_debits,
+        ab.total_credits,
+        ab.net_balance
+    FROM account_balances ab
+
+    UNION ALL
+
+    SELECT
+        ot.account_type,
+        ot.total_debits,
+        ot.total_credits,
+        ot.net_balance
+    FROM overall_totals ot
+)
+
+-- Step 6: Return the final report
+SELECT * FROM final_report
+ORDER BY account_type;

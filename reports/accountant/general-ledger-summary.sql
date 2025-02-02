@@ -1,3 +1,11 @@
+| #  | account_type | total_debits | total_credits | net_balance |
+|----|--------------|--------------|---------------|-------------|
+| 1  | Total        | 2800.00      | 9800.00       | 7000.00     |
+| 2  | asset        | 500.00       | 0             | -500.00     |
+| 3  | cash         | 0            | 8800.00       | 8800.00     |
+| 4  | payables     | 1350.00      | 0             | -1350.00    |
+| 5  | receivables  | 950.00       | 1000.00       | 50.00       |
+
 Algorithm:
   
 General_Ledger_Summary(startDate, endDate):

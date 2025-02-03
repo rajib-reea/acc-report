@@ -20,7 +20,7 @@ VALUES
     (5, '2025-01-03', 'sale', 25, 12.00);
 
 -- Create the inventory table
-CREATE TABLE inventory (
+CREATE TABLE acc_inventory (
     item_id INT PRIMARY KEY,
     item_name VARCHAR(255),
     quantity INT,
@@ -29,7 +29,7 @@ CREATE TABLE inventory (
 );
 
 -- Insert sample data into the inventory table
-INSERT INTO inventory (item_id, item_name, quantity, reorder_level, transaction_date) VALUES
+INSERT INTO acc_inventory (item_id, item_name, quantity, reorder_level, transaction_date) VALUES
 (1, 'Item A', 165, 50, '2025-01-01'),
 (2, 'Item B', 320, 150, '2025-01-02'),
 (3, 'Item C', 180, 90, '2025-01-03'),

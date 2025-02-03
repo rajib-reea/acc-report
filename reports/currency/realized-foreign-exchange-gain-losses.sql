@@ -1,3 +1,17 @@
+| #  | Transaction Date | Total Realized FX Gains | Total Realized FX Losses | Net Realized FX Gain/Loss | Gain/Loss Type       |
+|----|----------------|----------------------|----------------------|----------------------|------------------|
+| 1  | 2025-01-01     | 0.00                 | 0.00                 | 0.00                 | No Gain/Loss     |
+| 2  | 2025-01-02     | 0.00                 | 0.00                 | 0.00                 | No Gain/Loss     |
+| 3  | 2025-01-03     | 0.00                 | 0.00                 | 0.00                 | No Gain/Loss     |
+| 4  | 2025-01-04     | 0.00                 | 0.00                 | 0.00                 | No Gain/Loss     |
+| 5  | 2025-01-05     | 0.00                 | 0.00                 | 0.00                 | No Gain/Loss     |
+| 6  | 2025-01-06     | 0.00                 | 0.00                 | 0.00                 | No Gain/Loss     |
+| 7  | 2025-01-07     | 0.00                 | 0.00                 | 0.00                 | No Gain/Loss     |
+| 8  | 2025-01-08     | 0.00                 | 0.00                 | 0.00                 | No Gain/Loss     |
+| 9  | 2025-01-09     | 0.00                 | 0.00                 | 0.00                 | No Gain/Loss     |
+| 10 | 2025-01-10     | 0.00                 | 0.00                 | 0.00                 | No Gain/Loss     |
+| 11 | —              | 0.00                 | 0.00                 | 0.00                 | No Net Gain/Loss |
+
 Algorithm:
   
 Realized_Foreign_Exchange_Gains_Losses(startDate, endDate):
@@ -20,8 +34,17 @@ Realized_Foreign_Exchange_Gains_Losses(startDate, endDate):
      - Include the realized gains and losses for each transaction, along with the total realized FX gains and losses for the period.
 
  SQL:      
--- Step 1: Retrieve all FX transactions within the specified date range
-WITH fx_transactions AS (
+-- Step 1: Generate a series of dates within the specified range
+WITH DateSeries AS (
+    SELECT generate_series(
+        '2025-01-01'::DATE, 
+        '2025-01-10'::DATE, 
+        INTERVAL '1 day'
+    )::DATE AS transaction_date
+),
+
+-- Step 2: Retrieve all FX transactions within the specified date range
+fx_transactions AS (
     SELECT
         fx.transaction_id,
         fx.transaction_date,
@@ -29,12 +52,11 @@ WITH fx_transactions AS (
         fx.original_exchange_rate,
         fx.settlement_amount,
         fx.settlement_exchange_rate
-    FROM fx_transactions_table fx
-    WHERE fx.transaction_date >= :startDate
-      AND fx.transaction_date <= :endDate
+    FROM acc_fx_transactions fx
+    WHERE fx.transaction_date BETWEEN '2025-01-01' AND '2025-01-10'
 ),
 
--- Step 2: Calculate the realized FX gain/loss for each transaction
+-- Step 3: Compute the realized FX gain/loss per transaction (rounded to 2 decimal places)
 fx_gains_losses AS (
     SELECT
         transaction_id,
@@ -43,50 +65,57 @@ fx_gains_losses AS (
         original_exchange_rate,
         settlement_amount,
         settlement_exchange_rate,
-        -- Realized Gain/Loss = (Settlement Amount - Original Amount) * (Settlement Exchange Rate - Original Exchange Rate)
-        (settlement_amount - original_currency_amount) * (settlement_exchange_rate - original_exchange_rate) AS realized_fx_gain_loss
+        ROUND(settlement_amount - (original_currency_amount * original_exchange_rate), 2) AS realized_fx_gain_loss
     FROM fx_transactions
 ),
 
--- Step 3: Summarize the realized FX gains and losses
+-- Step 4: Aggregate the daily realized FX gains and losses (rounded to 2 decimal places)
+daily_summary AS (
+    SELECT 
+        ds.transaction_date,
+        ROUND(COALESCE(SUM(CASE WHEN f.realized_fx_gain_loss > 0 THEN f.realized_fx_gain_loss ELSE 0 END), 0), 2) AS total_realized_fx_gains,
+        ROUND(COALESCE(SUM(CASE WHEN f.realized_fx_gain_loss < 0 THEN f.realized_fx_gain_loss ELSE 0 END), 0), 2) AS total_realized_fx_losses,
+        ROUND(COALESCE(SUM(f.realized_fx_gain_loss), 0), 2) AS net_realized_fx_gain_loss
+    FROM DateSeries ds
+    LEFT JOIN fx_gains_losses f ON ds.transaction_date = f.transaction_date
+    GROUP BY ds.transaction_date
+),
+
+-- Step 5: Compute total realized FX gains and losses across the period (rounded to 2 decimal places)
 summarized_results AS (
-    SELECT
-        SUM(CASE WHEN realized_fx_gain_loss > 0 THEN realized_fx_gain_loss ELSE 0 END) AS total_realized_fx_gains,
-        SUM(CASE WHEN realized_fx_gain_loss < 0 THEN realized_fx_gain_loss ELSE 0 END) AS total_realized_fx_losses
-    FROM fx_gains_losses
+    SELECT 
+        ROUND(SUM(total_realized_fx_gains), 2) AS total_realized_fx_gains,
+        ROUND(SUM(total_realized_fx_losses), 2) AS total_realized_fx_losses,
+        ROUND(SUM(net_realized_fx_gain_loss), 2) AS net_realized_fx_gain_loss
+    FROM daily_summary
 )
 
--- Step 4: Return the realized gains and losses for each transaction, along with the summarized totals
-SELECT
-    f.transaction_id,
-    f.transaction_date,
-    f.original_currency_amount,
-    f.original_exchange_rate,
-    f.settlement_amount,
-    f.settlement_exchange_rate,
-    f.realized_fx_gain_loss,
-    CASE
-        WHEN f.realized_fx_gain_loss > 0 THEN 'Gain'
-        WHEN f.realized_fx_gain_loss < 0 THEN 'Loss'
+-- Step 6: Return detailed daily summary along with total summary
+SELECT 
+    transaction_date,
+    total_realized_fx_gains,
+    total_realized_fx_losses,
+    net_realized_fx_gain_loss,
+    CASE 
+        WHEN net_realized_fx_gain_loss > 0 THEN 'Gain'
+        WHEN net_realized_fx_gain_loss < 0 THEN 'Loss'
         ELSE 'No Gain/Loss'
     END AS gain_loss_type
-FROM fx_gains_losses f
+FROM daily_summary
 
-UNION ALL
+UNION ALL  -- This adds a total row at the bottom
 
--- Step 5: Return the total realized FX gains and losses for the period
-SELECT
-    'Total' AS transaction_id,
+-- Append the total realized FX gains and losses for the period
+SELECT 
     NULL AS transaction_date,
-    NULL AS original_currency_amount,
-    NULL AS original_exchange_rate,
-    NULL AS settlement_amount,
-    NULL AS settlement_exchange_rate,
-    total_realized_fx_gains + total_realized_fx_losses AS realized_fx_gain_loss,
-    CASE
-        WHEN total_realized_fx_gains + total_realized_fx_losses > 0 THEN 'Total Gain'
-        WHEN total_realized_fx_gains + total_realized_fx_losses < 0 THEN 'Total Loss'
+    total_realized_fx_gains,
+    total_realized_fx_losses,
+    net_realized_fx_gain_loss,
+    CASE 
+        WHEN net_realized_fx_gain_loss > 0 THEN 'Total Gain'
+        WHEN net_realized_fx_gain_loss < 0 THEN 'Total Loss'
         ELSE 'No Net Gain/Loss'
     END AS gain_loss_type
 FROM summarized_results
-ORDER BY transaction_id;
+
+ORDER BY transaction_date NULLS LAST; -- Ensures total row is at the bottom

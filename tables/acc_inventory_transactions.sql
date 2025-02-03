@@ -1,3 +1,4 @@
+drop table if exists acc_inventory_transactions;
 CREATE TABLE acc_inventory_transactions (
     transaction_id SERIAL PRIMARY KEY,
     item_id INT NOT NULL,
@@ -22,7 +23,7 @@ VALUES
 (10, '2025-01-10', 'sale', 110, 52.00, 5720.00);
 
 
--- Create the inventory table
+drop table if exists acc_inventory;
 CREATE TABLE acc_inventory (
     item_id INT PRIMARY KEY,
     item_name VARCHAR(255),

@@ -1,7 +1,7 @@
 -- Drop the table if it exists
 DROP TABLE IF EXISTS acc_inventory_transactions;
 
--- Create the table with the new `inventory_status` column
+-- Create the table with the `inventory_status` column using a CHECK constraint
 CREATE TABLE acc_inventory_transactions (
     transaction_id SERIAL PRIMARY KEY,
     item_id INT NOT NULL,
@@ -10,7 +10,7 @@ CREATE TABLE acc_inventory_transactions (
     quantity INT NOT NULL,
     unit_cost DECIMAL(10, 2) NOT NULL,
     estimated_value DECIMAL(10, 2) NOT NULL,
-    inventory_status ENUM('pending', 'processed') NOT NULL -- New column for inventory status
+    inventory_status VARCHAR(20) NOT NULL CHECK (inventory_status IN ('pending', 'processed')) -- Check constraint for valid status
 );
 
 -- Insert data with inventory_status column

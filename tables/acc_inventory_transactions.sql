@@ -30,25 +30,30 @@ VALUES
 (10, '2025-01-10', 'sale', 110, 52.00, 5720.00, 'pending', 'Clothing', 103);
 
 
-drop table if exists acc_inventory;
+-- Drop the table if it exists
+DROP TABLE IF EXISTS acc_inventory;
+
+-- Create the table with the `last_received_date` column
 CREATE TABLE acc_inventory (
     item_id INT PRIMARY KEY,
     item_name VARCHAR(255),
     quantity INT,
     reorder_level INT,
-    transaction_date DATE
+    transaction_date DATE,
+    last_received_date DATE -- New column for last received date
 );
 
--- Insert sample data into the inventory table
-INSERT INTO acc_inventory (item_id, item_name, quantity, reorder_level, transaction_date) VALUES
-(1, 'Item A', 165, 50, '2025-01-01'),
-(2, 'Item B', 320, 150, '2025-01-02'),
-(3, 'Item C', 180, 90, '2025-01-03'),
-(4, 'Item D', 320, 160, '2025-01-04'),
-(5, 'Item E', 300, 150, '2025-01-05'),
-(6, 'Item F', 80, 40, '2025-01-06'),
-(7, 'Item G', 240, 100, '2025-01-07'),
-(8, 'Item H', 150, 75, '2025-01-08'),
-(9, 'Item I', 110, 55, '2025-01-09'),
-(10, 'Item J', 130, 60, '2025-01-10');
+-- Insert sample data into the inventory table with `last_received_date`
+INSERT INTO acc_inventory (item_id, item_name, quantity, reorder_level, transaction_date, last_received_date) VALUES
+(1, 'Item A', 165, 50, '2025-01-01', '2025-01-01'),
+(2, 'Item B', 320, 150, '2025-01-02', '2025-01-02'),
+(3, 'Item C', 180, 90, '2025-01-03', '2025-01-03'),
+(4, 'Item D', 320, 160, '2025-01-04', '2025-01-04'),
+(5, 'Item E', 300, 150, '2025-01-05', '2025-01-05'),
+(6, 'Item F', 80, 40, '2025-01-06', '2025-01-06'),
+(7, 'Item G', 240, 100, '2025-01-07', '2025-01-07'),
+(8, 'Item H', 150, 75, '2025-01-08', '2025-01-08'),
+(9, 'Item I', 110, 55, '2025-01-09', '2025-01-09'),
+(10, 'Item J', 130, 60, '2025-01-10', '2025-01-10');
+
 

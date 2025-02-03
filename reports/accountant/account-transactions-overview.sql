@@ -8,7 +8,6 @@
 | 6  | cash        | 8800.00       | 0.00          | -8800.00     | 0.00               |
 | 7  | Total       | 9800.00       | 2800.00       | -7000.00     | 0.00               |
 
-
 Algorithm:
   
 Account_Transactions_Overview(startDate, endDate):

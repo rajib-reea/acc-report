@@ -8,7 +8,6 @@
 | 6  | cash          | 8800.00        | 0              | -8800.00    | f                  |
 | 7  | Total         | 9800.00        | 2800.00        | -7000.00    | f                  |
 
-  
 Algorithm:
   
 Account_Type_Classification_Report(startDate, endDate):

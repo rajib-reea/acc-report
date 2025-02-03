@@ -1,3 +1,18 @@
+| #  | transaction_date | total_unrealized_fx_gains | total_unrealized_fx_losses | net_unrealized_fx_gain_loss | gain_loss_type  |
+|----|------------------|----------------------------|-----------------------------|-----------------------------|-----------------|
+| 1  | 2025-01-01       | 50.00                      | 0                           | 50.00                       | Gain            |
+| 2  | 2025-01-02       | 0                          | -30.00                      | -30.00                      | Loss            |
+| 3  | 2025-01-03       | 12.00                      | 0                           | 12.00                       | Gain            |
+| 4  | 2025-01-04       | 26.00                      | 0                           | 26.00                       | Gain            |
+| 5  | 2025-01-05       | 0                          | -60.00                      | -60.00                      | Loss            |
+| 6  | 2025-01-06       | 0                          | -17.00                      | -17.00                      | Loss            |
+| 7  | 2025-01-07       | 48.00                      | 0                           | 48.00                       | Gain            |
+| 8  | 2025-01-08       | 36.00                      | 0                           | 36.00                       | Gain            |
+| 9  | 2025-01-09       | 28.00                      | 0                           | 28.00                       | Gain            |
+| 10 | 2025-01-10       | 0                          | 0                           | 0.00                        | No Gain/Loss    |
+| 11 |                  | 200.00                     | -107.00                     | 93.00                       | Total Gain      |
+
+
 Algorithm:
   
 Unrealized_Currency_Gains_Losses(startDate, endDate):
@@ -19,21 +34,29 @@ Unrealized_Currency_Gains_Losses(startDate, endDate):
      - Include the unrealized gains and losses for each open FX position, along with the total unrealized FX gains and losses for the period.
 
 SQL:       
--- Step 1: Retrieve all open FX positions (unsettled or pending transactions) within the specified date range
-WITH open_fx_positions AS (
+-- Step 1: Generate a series of dates within the specified range
+WITH DateSeries AS (
+    SELECT generate_series(
+        '2025-01-01'::DATE, 
+        '2025-01-10'::DATE, 
+        INTERVAL '1 day'
+    )::DATE AS transaction_date
+),
+
+-- Step 2: Retrieve all open FX positions (unsettled or pending transactions) within the specified date range
+open_fx_positions AS (
     SELECT
         fx.position_id,
         fx.transaction_date,
         fx.original_amount,
         fx.original_exchange_rate,
         fx.current_exchange_rate
-    FROM open_fx_positions_table fx
-    WHERE fx.transaction_date >= :startDate
-      AND fx.transaction_date <= :endDate
+    FROM acc_open_fx_transactions fx
+    WHERE fx.transaction_date BETWEEN '2025-01-01' AND '2025-01-10'
       AND fx.settlement_status = 'pending'  -- Only retrieve unsettled (open) positions
 ),
 
--- Step 2: Calculate the unrealized FX gain/loss for each open position
+-- Step 3: Calculate the unrealized FX gain/loss for each open position
 unrealized_gains_losses AS (
     SELECT
         position_id,
@@ -42,47 +65,57 @@ unrealized_gains_losses AS (
         original_exchange_rate,
         current_exchange_rate,
         -- Unrealized Gain/Loss = (Current Exchange Rate - Original Exchange Rate) * Original Amount
-        (current_exchange_rate - original_exchange_rate) * original_amount AS unrealized_fx_gain_loss
+        ROUND((current_exchange_rate - original_exchange_rate) * original_amount, 2) AS unrealized_fx_gain_loss
     FROM open_fx_positions
 ),
 
--- Step 3: Summarize the unrealized FX gains and losses for all open positions
+-- Step 4: Aggregate the daily unrealized FX gains and losses
+daily_summary AS (
+    SELECT 
+        ds.transaction_date,
+        COALESCE(SUM(CASE WHEN u.unrealized_fx_gain_loss > 0 THEN u.unrealized_fx_gain_loss ELSE 0 END), 0) AS total_unrealized_fx_gains,
+        COALESCE(SUM(CASE WHEN u.unrealized_fx_gain_loss < 0 THEN u.unrealized_fx_gain_loss ELSE 0 END), 0) AS total_unrealized_fx_losses,
+        COALESCE(SUM(u.unrealized_fx_gain_loss), 0) AS net_unrealized_fx_gain_loss
+    FROM DateSeries ds
+    LEFT JOIN unrealized_gains_losses u ON ds.transaction_date = u.transaction_date
+    GROUP BY ds.transaction_date
+),
+
+-- Step 5: Compute total unrealized FX gains and losses across the period
 summarized_results AS (
-    SELECT
-        SUM(CASE WHEN unrealized_fx_gain_loss > 0 THEN unrealized_fx_gain_loss ELSE 0 END) AS total_unrealized_fx_gains,
-        SUM(CASE WHEN unrealized_fx_gain_loss < 0 THEN unrealized_fx_gain_loss ELSE 0 END) AS total_unrealized_fx_losses
-    FROM unrealized_gains_losses
+    SELECT 
+        SUM(total_unrealized_fx_gains) AS total_unrealized_fx_gains,
+        SUM(total_unrealized_fx_losses) AS total_unrealized_fx_losses,
+        SUM(net_unrealized_fx_gain_loss) AS net_unrealized_fx_gain_loss
+    FROM daily_summary
 )
 
--- Step 4: Return the unrealized gains and losses for each open FX position, along with the summarized totals
-SELECT
-    f.position_id,
-    f.transaction_date,
-    f.original_amount,
-    f.original_exchange_rate,
-    f.current_exchange_rate,
-    f.unrealized_fx_gain_loss,
-    CASE
-        WHEN f.unrealized_fx_gain_loss > 0 THEN 'Gain'
-        WHEN f.unrealized_fx_gain_loss < 0 THEN 'Loss'
+-- Step 6: Return detailed daily summary along with total summary
+SELECT 
+    transaction_date,
+    total_unrealized_fx_gains,
+    total_unrealized_fx_losses,
+    net_unrealized_fx_gain_loss,
+    CASE 
+        WHEN net_unrealized_fx_gain_loss > 0 THEN 'Gain'
+        WHEN net_unrealized_fx_gain_loss < 0 THEN 'Loss'
         ELSE 'No Gain/Loss'
     END AS gain_loss_type
-FROM unrealized_gains_losses f
+FROM daily_summary
 
 UNION ALL
 
--- Step 5: Return the total unrealized FX gains and losses for the period
-SELECT
-    'Total' AS position_id,
+-- Append the total unrealized FX gains and losses for the period
+SELECT 
     NULL AS transaction_date,
-    NULL AS original_amount,
-    NULL AS original_exchange_rate,
-    NULL AS current_exchange_rate,
-    total_unrealized_fx_gains + total_unrealized_fx_losses AS unrealized_fx_gain_loss,
-    CASE
-        WHEN total_unrealized_fx_gains + total_unrealized_fx_losses > 0 THEN 'Total Gain'
-        WHEN total_unrealized_fx_gains + total_unrealized_fx_losses < 0 THEN 'Total Loss'
+    total_unrealized_fx_gains,
+    total_unrealized_fx_losses,
+    net_unrealized_fx_gain_loss,
+    CASE 
+        WHEN net_unrealized_fx_gain_loss > 0 THEN 'Total Gain'
+        WHEN net_unrealized_fx_gain_loss < 0 THEN 'Total Loss'
         ELSE 'No Net Gain/Loss'
     END AS gain_loss_type
 FROM summarized_results
-ORDER BY position_id;
+
+ORDER BY transaction_date NULLS LAST;

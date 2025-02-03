@@ -12,7 +12,6 @@
 | 10 | 2025-01-10       | 0                          | 0                           | 0.00                        | No Gain/Loss    |
 | 11 |                  | 200.00                     | -107.00                     | 93.00                       | Total Gain      |
 
-
 Algorithm:
   
 Unrealized_Currency_Gains_Losses(startDate, endDate):

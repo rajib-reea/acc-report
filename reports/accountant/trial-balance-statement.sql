@@ -11,7 +11,6 @@
 | 9  | 2025-01-09     | Current Asset      | 750.00               | 0.00                 | -750.00     |
 | 10 | 2025-01-10     | Current Asset      | 0.00                 | 3000.00              | 3000.00     |
 
-
 Algorithm:
   
   Trial_Balance_Statement(startDate, endDate):

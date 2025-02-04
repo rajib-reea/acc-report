@@ -1,3 +1,13 @@
+| #  | vendor_id | transaction_id | transaction_type | invoice_amount | payment_amount | credit_note_amount | outstanding_balance | aging_category |
+|----|-----------|----------------|------------------|----------------|-----------------|---------------------|---------------------|----------------|
+| 1  | 1         | 1              | Invoice          | 1000.00        | 0.00            | 0.00                | 1000.00             | 0-30 Days      |
+| 2  | 1         | 2              | Invoice          | 1500.00        | 0.00            | 0.00                | 1500.00             | 0-30 Days      |
+| 3  | 2         | 4              | Invoice          | 2000.00        | 0.00            | 0.00                | 2000.00             | 0-30 Days      |
+| 4  | 2         | 5              | Invoice          | 1200.00        | 0.00            | 0.00                | 1200.00             | 0-30 Days      |
+| 5  | 3         | 8              | Invoice          | 1800.00        | 0.00            | 0.00                | 1800.00             | 0-30 Days      |
+| 6  | 4         | 10             | Invoice          | 500.00         | 0.00            | 0.00                | 500.00              | 0-30 Days      |
+| 7  | 4         | 11             | Invoice          | 750.00         | 0.00            | 0.00                | 750.00              | Not Due        |
+
 Algorithm:
   
 Payable_Transactions_Report(startDate, endDate):

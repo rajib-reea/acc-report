@@ -11,7 +11,6 @@ Detailed_AP_Aging_Report(startDate, endDate):
   7. Store the detailed AP aging data and return the results.
 
 SQL:
--- Define the date range using DateSeries
 WITH DateSeries AS (
     -- Generate daily dates within the range
     SELECT generate_series(
@@ -39,9 +38,9 @@ InvoiceAging AS (
         ap.vendor_id,
         ap.invoice_id,
         ap.invoice_amount - ap.payment_amount AS outstanding_balance,
-        DATEDIFF(CURRENT_DATE, ap.due_date) AS days_overdue
+        (CURRENT_DATE - ap.due_date) AS days_overdue -- Use date subtraction for days overdue
     FROM APTransactions ap
-    WHERE ap.invoice_amount > ap.payment_amount
+    WHERE ap.invoice_amount > ap.payment_amount -- Only consider unpaid or partially paid invoices
 ),
 AgingCategories AS (
     -- Step 5: Group invoices into aging categories (0-30, 31-60, etc.)
@@ -51,11 +50,11 @@ AgingCategories AS (
         ia.outstanding_balance,
         ia.days_overdue,
         CASE 
+            WHEN ia.days_overdue < 0 THEN 'Not Due'
             WHEN ia.days_overdue BETWEEN 0 AND 30 THEN '0-30 Days'
             WHEN ia.days_overdue BETWEEN 31 AND 60 THEN '31-60 Days'
             WHEN ia.days_overdue BETWEEN 61 AND 90 THEN '61-90 Days'
             WHEN ia.days_overdue > 90 THEN '91+ Days'
-            ELSE 'Not Due'
         END AS aging_category
     FROM InvoiceAging ia
 )

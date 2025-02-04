@@ -1,4 +1,5 @@
-drop TABLE if exists acc_payable_transactions;
+-- Drop and recreate the table
+DROP TABLE IF EXISTS acc_payable_transactions;
 
 CREATE TABLE acc_payable_transactions (
     transaction_id SERIAL PRIMARY KEY,
@@ -11,7 +12,7 @@ CREATE TABLE acc_payable_transactions (
     due_date DATE NOT NULL
 );
 
-
+-- Insert sample data
 INSERT INTO acc_payable_transactions (vendor_id, transaction_type, invoice_amount, payment_amount, credit_note_amount, transaction_date, due_date)
 VALUES
     -- Vendor 1 Invoices
@@ -34,5 +35,3 @@ VALUES
     (4, 'Invoice', 750.00, 0.00, 0.00, '2025-01-10', '2025-02-05'),
     -- Vendor 4 Payments
     (4, 'Payment', 0.00, 500.00, 0.00, '2025-01-15', '2025-01-30');
-
-

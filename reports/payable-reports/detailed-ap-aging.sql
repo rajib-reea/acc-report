@@ -1,3 +1,13 @@
+| #  | Vendor ID | Invoice ID | Outstanding Balance | Days Overdue | Aging Category |
+|----|-----------|-----------|---------------------|--------------|---------------|
+| 1  | 1         | INV-1001  | 1000.00             | 25           | 0-30 Days     |
+| 2  | 1         | INV-1002  | 1500.00             | 20           | 0-30 Days     |
+| 3  | 2         | INV-2001  | 1500.00             | 23           | 0-30 Days     |
+| 4  | 2         | INV-2002  | 1200.00             | 15           | 0-30 Days     |
+| 5  | 3         | INV-3002  | 1500.00             | 10           | 0-30 Days     |
+| 6  | 4         | INV-4001  | 500.00              | 5            | 0-30 Days     |
+| 7  | 4         | INV-4002  | 750.00              | -1           | Not Due       |
+
 Algorithm:
   
 Detailed_AP_Aging_Report(startDate, endDate):

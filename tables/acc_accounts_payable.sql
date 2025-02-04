@@ -1,5 +1,5 @@
 drop table acc_accounts_payable;
-CREATE TABLE acc_accounts_payable (
+CREATE TABLE acc_account_payable (
     transaction_id SERIAL PRIMARY KEY,
     vendor_id INT NOT NULL,
     invoice_id VARCHAR(50) NOT NULL,  -- Added invoice_id
@@ -10,7 +10,7 @@ CREATE TABLE acc_accounts_payable (
 );
 
 -- Insert sample data with invoice_id specified
-INSERT INTO acc_accounts_payable (vendor_id, invoice_id, invoice_date, due_date, invoice_amount, payment_amount) 
+INSERT INTO acc_account_payable (vendor_id, invoice_id, invoice_date, due_date, invoice_amount, payment_amount) 
 VALUES 
     (1, 'INV-1001', '2025-01-01', '2025-01-10', 1000.00, 0),
     (1, 'INV-1002', '2025-01-03', '2025-01-15', 1500.00, 0),

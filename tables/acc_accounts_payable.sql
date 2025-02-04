@@ -1,11 +1,14 @@
+drop table acc_accounts_payable;
 CREATE TABLE acc_accounts_payable (
     transaction_id SERIAL PRIMARY KEY,
     vendor_id INT NOT NULL,
-    invoice_date DATE NOT NULL,
+    invoice_date DATE NOT NULL,  -- Added invoice_date explicitly
     due_date DATE NOT NULL,
     invoice_amount DECIMAL(10,2) NOT NULL,
     payment_amount DECIMAL(10,2) DEFAULT 0
 );
+
+-- Insert sample data with invoice_date specified
 INSERT INTO acc_accounts_payable (vendor_id, invoice_date, due_date, invoice_amount, payment_amount) 
 VALUES 
     (1, '2025-01-01', '2025-01-10', 1000.00, 0),

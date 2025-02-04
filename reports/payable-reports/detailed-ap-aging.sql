@@ -11,11 +11,16 @@ Detailed_AP_Aging_Report(startDate, endDate):
   7. Store the detailed AP aging data and return the results.
 
 SQL:
--- Define the date parameters
-\set startDate '2025-01-01'
-\set endDate '2025-12-31'
-
-WITH APTransactions AS (
+-- Define the date range using DateSeries
+WITH DateSeries AS (
+    -- Generate daily dates within the range
+    SELECT generate_series(
+        '2025-01-01'::DATE, 
+        '2025-12-31'::DATE, 
+        INTERVAL '1 day'
+    )::DATE AS transaction_date
+),
+APTransactions AS (
     -- Step 1: Retrieve all AP transactions within the specified date range
     SELECT
         ap.transaction_id,
@@ -25,8 +30,8 @@ WITH APTransactions AS (
         ap.due_date,
         ap.invoice_amount,
         ap.payment_amount
-    FROM accounts_payable ap
-    WHERE ap.invoice_date BETWEEN :startDate AND :endDate
+    FROM acc_accounts_payable ap
+    JOIN DateSeries ds ON ap.invoice_date = ds.transaction_date
 ),
 InvoiceAging AS (
     -- Step 4: Calculate the aging of each outstanding invoice
@@ -44,6 +49,7 @@ AgingCategories AS (
         ia.vendor_id,
         ia.invoice_id,
         ia.outstanding_balance,
+        ia.days_overdue,
         CASE 
             WHEN ia.days_overdue BETWEEN 0 AND 30 THEN '0-30 Days'
             WHEN ia.days_overdue BETWEEN 31 AND 60 THEN '31-60 Days'
@@ -58,7 +64,7 @@ SELECT
     ac.vendor_id,
     ac.invoice_id,
     ac.outstanding_balance,
-    ac.aging_category,
-    ac.days_overdue
+    ac.days_overdue,
+    ac.aging_category
 FROM AgingCategories ac
 ORDER BY ac.vendor_id, ac.aging_category, ac.invoice_id;

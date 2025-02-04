@@ -54,7 +54,7 @@ WITH DateSeries AS (
         ap.invoice_amount,
         ap.payment_amount,
         GREATEST(CURRENT_DATE - ap.due_date, 0) AS days_past_due
-    FROM acc_accounts_payable ap
+    FROM acc_account_payable ap
     WHERE ap.invoice_date BETWEEN '2025-01-01'::DATE AND '2025-01-10'::DATE
 ), AgingCategories AS (
     -- Step 3: Calculate the aging of accounts payable for each vendor

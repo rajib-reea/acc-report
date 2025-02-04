@@ -11,10 +11,6 @@ Payable_Transactions_Report(startDate, endDate):
   7. Store the payable transactions data and return the results.
 
 SQL:
-​​-- Define the date parameters
-\set startDate '2025-01-01'
-\set endDate '2025-12-31'
-
 WITH PayableTransactions AS (
     -- Step 1: Retrieve all payable transactions within the specified date range
     SELECT
@@ -26,11 +22,11 @@ WITH PayableTransactions AS (
         p.credit_note_amount,
         p.transaction_date,
         p.due_date
-    FROM payable_transactions p
-    WHERE p.transaction_date BETWEEN :startDate AND :endDate
+    FROM acc_payable_transactions p
+    WHERE p.transaction_date BETWEEN '2025-01-01' AND '2025-12-31'  -- Date range
 ),
 PayableBalances AS (
-    -- Step 2: Group the transactions by vendor and calculate the outstanding balance
+    -- Step 2: Calculate the outstanding balance for each transaction
     SELECT
         p.vendor_id,
         p.transaction_id,
@@ -38,24 +34,27 @@ PayableBalances AS (
         p.invoice_amount,
         p.payment_amount,
         p.credit_note_amount,
+        p.due_date,
         (p.invoice_amount - p.payment_amount + p.credit_note_amount) AS outstanding_balance
     FROM PayableTransactions p
 ),
 AgingCategories AS (
-    -- Step 5: Calculate the aging of each payable (group balances into aging categories)
+    -- Step 3: Calculate the aging of each payable (group balances into aging categories)
     SELECT
         p.vendor_id,
         p.transaction_id,
+        p.outstanding_balance,
+        (CURRENT_DATE - p.due_date) AS days_overdue,  -- Calculate days overdue
         CASE
-            WHEN p.due_date <= current_date - INTERVAL '0' DAY THEN '0-30 Days'
-            WHEN p.due_date <= current_date - INTERVAL '30' DAY THEN '31-60 Days'
-            WHEN p.due_date <= current_date - INTERVAL '60' DAY THEN '61-90 Days'
-            ELSE '91+ Days'
-        END AS aging_category,
-        p.outstanding_balance
+            WHEN (CURRENT_DATE - p.due_date) BETWEEN 0 AND 30 THEN '0-30 Days'
+            WHEN (CURRENT_DATE - p.due_date) BETWEEN 31 AND 60 THEN '31-60 Days'
+            WHEN (CURRENT_DATE - p.due_date) BETWEEN 61 AND 90 THEN '61-90 Days'
+            WHEN (CURRENT_DATE - p.due_date) > 90 THEN '91+ Days'
+            ELSE 'Not Due'
+        END AS aging_category
     FROM PayableBalances p
 )
--- Step 6: Validate the transaction amounts (ensure no invalid or negative values)
+-- Step 4: Return the results with aging categories and validate balances
 SELECT
     pb.vendor_id,
     pb.transaction_id,
@@ -67,5 +66,5 @@ SELECT
     ac.aging_category
 FROM PayableBalances pb
 LEFT JOIN AgingCategories ac ON pb.transaction_id = ac.transaction_id
-WHERE pb.outstanding_balance >= 0 -- Ensure no negative balances
+WHERE pb.outstanding_balance >= 0  -- Ensure no negative balances
 ORDER BY pb.vendor_id, pb.transaction_id;

@@ -1,3 +1,5 @@
+drop TABLE if exists acc_payable_transactions;
+
 CREATE TABLE acc_payable_transactions (
     transaction_id SERIAL PRIMARY KEY,
     vendor_id INT NOT NULL,
@@ -8,6 +10,7 @@ CREATE TABLE acc_payable_transactions (
     transaction_date DATE NOT NULL,
     due_date DATE NOT NULL
 );
+
 
 INSERT INTO acc_payable_transactions (vendor_id, transaction_type, invoice_amount, payment_amount, credit_note_amount, transaction_date, due_date)
 VALUES
@@ -31,4 +34,5 @@ VALUES
     (4, 'Invoice', 750.00, 0.00, 0.00, '2025-01-10', '2025-02-05'),
     -- Vendor 4 Payments
     (4, 'Payment', 0.00, 500.00, 0.00, '2025-01-15', '2025-01-30');
+
 

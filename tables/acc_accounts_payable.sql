@@ -1,4 +1,3 @@
-drop table acc_accounts_payable;
 DROP TABLE IF EXISTS acc_account_payable;
 
 CREATE TABLE acc_account_payable (

@@ -1,3 +1,15 @@
+| #  | vendor_id | reason_name  | total_credit_value |
+|----|-----------|--------------|--------------------|
+| 1  | 1         | Adjustments  | 300.00             |
+| 2  | 1         | Returns      | 500.00             |
+| 3  | 2         | Adjustments  | 200.00             |
+| 4  | 2         | Returns      | 1000.00            |
+| 5  | 3         | Adjustments  | 300.00             |
+| 6  | 3         | Returns      | 1500.00            |
+| 7  | 4         | Returns      | 750.00             |
+| 8  | 5         | Adjustments  | 1200.00            |
+| 9  | 5         | Returns      | 400.00             |
+
 Algorithm:
   
 Vendor_Credit_Transactions(startDate, endDate):
@@ -10,23 +22,29 @@ Vendor_Credit_Transactions(startDate, endDate):
   7. Store the credit transactions data and return the results.
 
 SQL:
--- Define the date parameters
-\set startDate '2025-01-01'
-\set endDate '2025-12-31'
-
-WITH CreditNoteTransactions AS (
-    -- Step 1: Retrieve all vendor credit note transactions within the specified date range
+-- Define the date parameters dynamically
+WITH DateSeries AS (
+    -- Step 1: Generate daily dates within the range
+    SELECT generate_series(
+        '2025-01-01'::DATE, 
+        '2025-12-31'::DATE, 
+        INTERVAL '1 day'
+    )::DATE AS transaction_date
+),
+CreditNoteTransactions AS (
+    -- Step 2: Retrieve all vendor credit note transactions within the specified date range
     SELECT
         ctn.credit_note_id,
         ctn.vendor_id,
         ctn.credit_note_date,
         ctn.credit_amount,
         ctn.reason_code
-    FROM vendor_credit_notes ctn
-    WHERE ctn.credit_note_date BETWEEN :startDate AND :endDate
+    FROM acc_vendor_credit_notes ctn
+    WHERE ctn.credit_note_date BETWEEN (SELECT MIN(transaction_date) FROM DateSeries)
+                                  AND (SELECT MAX(transaction_date) FROM DateSeries)
 ),
 CreditTransactions AS (
-    -- Step 2: Group the credit note transactions by vendor
+    -- Step 3: Group the credit note transactions by vendor
     SELECT
         ctn.vendor_id,
         SUM(ctn.credit_amount) AS total_credit_amount,

@@ -1,3 +1,10 @@
+| #  | vendor_id | refund_reason    | total_refund_amount | overall_refund_amount |
+|----|-----------|------------------|---------------------|-----------------------|
+| 1  | 1         | Customer Refund  | 380.75              | 1092.25               |
+| 2  | 1         | Order Cancellation | 150.00             | 1092.25               |
+| 3  | 2         | Product Defect    | 216.50              | 1092.25               |
+| 4  | 3         | Order Cancellation | 345.00             | 1092.25               |
+
 Algorithm:
 Refund_Transactions_Report(startDate, endDate):
   1. Retrieve all refund transactions within the specified date range (startDate to endDate).
@@ -9,30 +16,35 @@ Refund_Transactions_Report(startDate, endDate):
   7. Store the refund transaction data and return the results.
 
   SQL:
--- Define the date parameters
-\set startDate '2025-01-01'
-\set endDate '2025-12-31'
-
-WITH RefundTransactions AS (
+WITH DateSeries AS (
+    -- Generate a series of dates for the specified range (replace with your startDate and endDate)
+    SELECT generate_series(
+        '2025-01-01'::DATE, 
+        '2025-01-10'::DATE,  -- Replace with your dynamic date range
+        INTERVAL '1 day'
+    )::DATE AS transaction_date
+),
+RefundTransactions AS (
     -- Step 1: Retrieve all refund transactions within the specified date range
     SELECT
-        r.transaction_id,
-        r.customer_id,
-        r.transaction_date,
-        r.reason,  -- Optional: Group by reason such as order cancellation, product defect, etc.
-        r.amount AS refund_amount
-    FROM refunds r
-    WHERE r.transaction_date BETWEEN :startDate AND :endDate
+        r.refund_id,
+        r.vendor_id,
+        r.refund_date,
+        r.refund_reason,  -- Optional: Group by reason such as order cancellation, product defect, etc.
+        r.refund_amount
+    FROM acc_refunds r
+    JOIN DateSeries ds ON r.refund_date = ds.transaction_date
+    WHERE r.refund_date BETWEEN '2025-01-01' AND '2025-01-10'  -- Replace with your dynamic date range
+    AND r.refund_amount >= 0  -- Validate no negative refund amounts
 ),
 AggregatedRefunds AS (
-    -- Step 3: Calculate the total refund amount for each customer, 
-    -- and optionally, group by reason
+    -- Step 3: Calculate the total refund amount for each vendor and reason
     SELECT
-        customer_id,
-        reason,
+        vendor_id,
+        refund_reason,
         SUM(refund_amount) AS total_refund_amount
     FROM RefundTransactions
-    GROUP BY customer_id, reason
+    GROUP BY vendor_id, refund_reason
 ),
 OverallRefunds AS (
     -- Step 5: Calculate the overall total value of refunds issued
@@ -40,12 +52,12 @@ OverallRefunds AS (
         SUM(refund_amount) AS overall_refund_amount
     FROM RefundTransactions
 )
--- Step 6: Validate and return the data
+-- Step 6: Return the aggregated data and overall refund amount
 SELECT
-    ar.customer_id,
-    ar.reason,
+    ar.vendor_id,
+    ar.refund_reason,
     ar.total_refund_amount,
     orf.overall_refund_amount
 FROM AggregatedRefunds ar
 CROSS JOIN OverallRefunds orf
-ORDER BY ar.customer_id, ar.reason;
+ORDER BY ar.vendor_id, ar.refund_reason;

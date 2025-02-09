@@ -1,3 +1,41 @@
+| #   | transaction_date | project_id | total_billable_expenses | num_transactions |
+|-----|------------------|------------|-------------------------|------------------|
+| 1   | 2025-01-01       | 1          | 150.00                  | 1                |
+| 2   | 2025-01-01       | 3          | 500.00                  | 1                |
+| 3   | 2025-01-02       | 2          | 300.00                  | 1                |
+| 4   | 2025-01-03       | 1          | 200.00                  | 1                |
+| 5   | 2025-01-03       | 2          | 100.00                  | 1                |
+| 6   | 2025-01-04       | 3          | 50.00                   | 1                |
+| 7   | 2025-01-05       | 1          | 250.00                  | 1                |
+| 8   | 2025-01-06       | 1          | 100.00                  | 1                |
+| 9   | 2025-01-06       | 2          | 600.00                  | 2                |
+| 10  | 2025-01-06       | 3          | 300.00                  | 1                |
+| 11  | 2025-01-07       |            | 0.00                    | 0                |
+| 12  | 2025-01-08       |            | 0.00                    | 0                |
+| 13  | 2025-01-09       |            | 0.00                    | 0                |
+| 14  | 2025-01-10       |            | 0.00                    | 0                |
+| 15  | 2025-01-11       |            | 0.00                    | 0                |
+| 16  | 2025-01-12       |            | 0.00                    | 0                |
+| 17  | 2025-01-13       |            | 0.00                    | 0                |
+| 18  | 2025-01-14       |            | 0.00                    | 0                |
+| 19  | 2025-01-15       | 1          | 120.00                  | 1                |
+| 20  | 2025-01-16       |            | 0.00                    | 0                |
+| 21  | 2025-01-17       |            | 0.00                    | 0                |
+| 22  | 2025-01-18       |            | 0.00                    | 0                |
+| 23  | 2025-01-19       |            | 0.00                    | 0                |
+| 24  | 2025-01-20       | 2          | 180.00                  | 1                |
+| 25  | 2025-01-21       |            | 0.00                    | 0                |
+| 26  | 2025-01-22       |            | 0.00                    | 0                |
+| 27  | 2025-01-23       |            | 0.00                    | 0                |
+| 28  | 2025-01-24       |            | 0.00                    | 0                |
+| 29  | 2025-01-25       | 3          | 210.00                  | 1                |
+| 30  | 2025-01-26       |            | 0.00                    | 0                |
+| 31  | 2025-01-27       |            | 0.00                    | 0                |
+| 32  | 2025-01-28       |            | 0.00                    | 0                |
+| 33  | 2025-01-29       |            | 0.00                    | 0                |
+| 34  | 2025-01-30       |            | 0.00                    | 0                |
+| 35  | 2025-01-31       | 1          | 90.00                   | 1                |
+
 Algorithm:
   
 Billable_Expenses_Report(startDate, endDate):
@@ -11,36 +49,43 @@ Billable_Expenses_Report(startDate, endDate):
 
 
 SQL:
--- Define the date parameters
-\set startDate '2025-01-01'
-\set endDate '2025-12-31'
-
-WITH BillableExpenses AS (
-    -- Step 1: Retrieve all billable expense transactions within the specified date range
+  
+WITH DateSeries AS (
+    -- Generate a series of dates from January 1, 2025, to January 31, 2025
+    SELECT generate_series(
+        '2025-01-01'::DATE, 
+        '2025-01-31'::DATE, 
+        INTERVAL '1 day'
+    )::DATE AS transaction_date
+),
+BillableExpenses AS (
+    -- Retrieve all billable expense transactions within the specified date range
     SELECT
         be.transaction_id,
-        be.project_id, -- or customer_id depending on how the data is linked
+        be.project_id, -- Replace with customer_id if needed
         be.amount,
         be.transaction_date
-    FROM billable_expenses be
-    WHERE be.transaction_date BETWEEN :startDate AND :endDate
-      AND be.amount > 0 -- Ensure the expenses are billable and not negative
+    FROM acc_billable_expenses be
+    WHERE be.transaction_date BETWEEN '2025-01-01' AND '2025-01-31'
+      AND be.amount > 0 -- Ensure only valid (positive) expenses are retrieved
 ),
-BillableExpenseSummary AS (
-    -- Step 2: Group the billable expenses by project or customer
-    -- Here we group by project_id, you can change this to customer_id if necessary
+DailyBillableSummary AS (
+    -- Left join DateSeries to ensure every date is represented, even with zero transactions
     SELECT
-        be.project_id, -- or be.customer_id depending on data structure
-        SUM(be.amount) AS total_billable_expenses,
-        COUNT(be.transaction_id) AS num_transactions
-    FROM BillableExpenses be
-    GROUP BY be.project_id
+        ds.transaction_date,
+        be.project_id,
+        COALESCE(SUM(be.amount), 0) AS total_billable_expenses,
+        COALESCE(COUNT(be.transaction_id), 0) AS num_transactions
+    FROM DateSeries ds
+    LEFT JOIN BillableExpenses be
+        ON ds.transaction_date = be.transaction_date
+    GROUP BY ds.transaction_date, be.project_id
 )
--- Step 5: Validate the billable expense amounts (ensure no invalid or negative values)
+-- Final result: daily billable expenses per project
 SELECT
-    bes.project_id, -- or bes.customer_id depending on how it's grouped
-    bes.total_billable_expenses,
-    bes.num_transactions
-FROM BillableExpenseSummary bes
-WHERE bes.total_billable_expenses >= 0 -- Ensure no negative billable amounts
-ORDER BY bes.project_id; -- or customer_id if grouped by customer
+    transaction_date,
+    project_id,
+    total_billable_expenses,
+    num_transactions
+FROM DailyBillableSummary
+ORDER BY transaction_date, project_id;

@@ -1,20 +1,21 @@
 -- Drop the acc_projects table if it exists
 DROP TABLE IF EXISTS acc_projects;
 
--- Create acc_projects table with planned_completion_date
+-- Create acc_projects table with planned_completion_date and actual_completion_date
 CREATE TABLE acc_projects (
     project_id SERIAL PRIMARY KEY,
     project_name VARCHAR(255) NOT NULL,
     start_date DATE NOT NULL,
     end_date DATE NOT NULL,
-    planned_completion_date DATE
+    planned_completion_date DATE,
+    actual_completion_date DATE
 );
 
--- Insert sample data into acc_projects with planned_completion_date
-INSERT INTO acc_projects (project_name, start_date, end_date, planned_completion_date) VALUES
-('Project Alpha', '2025-01-01', '2025-01-05', '2025-01-04'),
-('Project Beta', '2025-01-03', '2025-01-08', '2025-01-07'),
-('Project Gamma', '2025-01-02', '2025-01-10', '2025-01-09');
+-- Insert sample data into acc_projects with planned_completion_date and actual_completion_date
+INSERT INTO acc_projects (project_name, start_date, end_date, planned_completion_date, actual_completion_date) VALUES
+('Project Alpha', '2025-01-01', '2025-01-05', '2025-01-04', '2025-01-05'),
+('Project Beta', '2025-01-03', '2025-01-08', '2025-01-07', '2025-01-08'),
+('Project Gamma', '2025-01-02', '2025-01-10', '2025-01-09', '2025-01-10');
 
 
 drop table if exists project_costs;

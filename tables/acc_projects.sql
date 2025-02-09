@@ -1,5 +1,5 @@
 -- Drop the acc_projects table if it exists
-DROP TABLE IF EXISTS acc_projects;
+DROP TABLE IF EXISTS acc_projects cascade;
 
 -- Create acc_projects table with planned_completion_date and actual_completion_date
 CREATE TABLE acc_projects (
@@ -18,10 +18,10 @@ INSERT INTO acc_projects (project_name, start_date, end_date, planned_completion
 ('Project Gamma', '2025-01-02', '2025-01-10', '2025-01-09', '2025-01-10');
 
 -- Drop the project_revenues table if it exists
-DROP TABLE IF EXISTS project_revenues;
+DROP TABLE IF EXISTS acc_project_revenues cascade;
 
 -- Create project_revenues table to store revenue data related to each project
-CREATE TABLE project_revenues (
+CREATE TABLE acc_project_revenues (
     revenue_id SERIAL PRIMARY KEY,
     project_id INT NOT NULL,
     revenue_type VARCHAR(50) NOT NULL,  -- 'Billable Hours', 'Flat Fee', 'Milestone Payment', etc.
@@ -30,7 +30,7 @@ CREATE TABLE project_revenues (
 );
 
 -- Insert sample data into project_revenues
-INSERT INTO project_revenues (project_id, revenue_type, amount) VALUES
+INSERT INTO acc_project_revenues (project_id, revenue_type, amount) VALUES
 -- For Project Alpha
 (1, 'Billable Hours', 1500.00),
 (1, 'Flat Fee', 2000.00),
@@ -51,10 +51,10 @@ INSERT INTO project_revenues (project_id, revenue_type, amount) VALUES
 (3, 'Material Cost', 400.00);
 
 -- Drop the project_costs table if it exists
-DROP TABLE IF EXISTS project_costs;
+DROP TABLE IF EXISTS acc_project_costs cascade;
 
 -- Create project_costs table
-CREATE TABLE project_costs (
+CREATE TABLE acc_project_costs (
     cost_id SERIAL PRIMARY KEY,
     project_id INT REFERENCES acc_projects(project_id),
     transaction_date DATE NOT NULL,
@@ -63,7 +63,7 @@ CREATE TABLE project_costs (
 );
 
 -- Insert sample data into project_costs
-INSERT INTO project_costs (project_id, transaction_date, cost_type, amount) VALUES
+INSERT INTO acc_project_costs (project_id, transaction_date, cost_type, amount) VALUES
 (1, '2025-01-01', 'Labor', 500.00),
 (1, '2025-01-01', 'Material', 200.00),
 (1, '2025-01-02', 'Labor', 450.00),

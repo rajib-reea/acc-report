@@ -55,7 +55,6 @@ Project_Cost_Summary(startDate, endDate):
 
 SQL:  
   
--- Step 1: Generate a series of dates for the specified date range
 WITH DateSeries AS (
     SELECT generate_series('2025-01-01'::DATE, '2025-01-10'::DATE, INTERVAL '1 day')::DATE AS transaction_date
 ),
@@ -87,7 +86,7 @@ DailyProjectCosts AS (
         COALESCE(SUM(pc.amount), 0) AS total_project_cost
     FROM ProjectData pd
     CROSS JOIN DateSeries ds
-    LEFT JOIN project_costs pc 
+    LEFT JOIN acc_project_costs pc 
         ON pd.project_id = pc.project_id 
         AND pc.transaction_date = ds.transaction_date
     GROUP BY pd.project_id, pd.project_name, ds.transaction_date

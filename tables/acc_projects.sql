@@ -1,3 +1,4 @@
+drop table if exists acc_projects;
 -- Create acc_projects table
 CREATE TABLE acc_projects (
     project_id SERIAL PRIMARY KEY,
@@ -12,6 +13,7 @@ INSERT INTO acc_projects (project_name, start_date, end_date) VALUES
 ('Project Beta', '2025-01-03', '2025-01-08'),
 ('Project Gamma', '2025-01-02', '2025-01-10');
 
+drop table if exists project_costs;
 -- Create project_costs table
 CREATE TABLE project_costs (
     cost_id SERIAL PRIMARY KEY,

@@ -1,3 +1,9 @@
+| #  | Expense Type    | Total Expenses | Number of Transactions |
+|----|-----------------|----------------|------------------------|
+| 1  | Office Supplies | 820.00         | 5                      |
+| 2  | Travel          | 1060.00        | 4                      |
+| 3  | Utilities       | 1180.00        | 4                      |
+
 Algorithm:
   
 Expenses_Categorized_by_Type(startDate, endDate):
@@ -10,19 +16,23 @@ Expenses_Categorized_by_Type(startDate, endDate):
   6. Store the categorized expense data and return the results.
 
 SQL:  
--- Define the date parameters
-\set startDate '2025-01-01'
-\set endDate '2025-12-31'
-
-WITH Expenses AS (
+  WITH DateSeries AS (
+    -- Generate a series of dates from January 1, 2025, to January 10, 2025
+    SELECT generate_series(
+        '2025-01-01'::DATE, 
+        '2025-01-10'::DATE, 
+        INTERVAL '1 day'
+    )::DATE AS transaction_date
+),
+Expenses AS (
     -- Step 1: Retrieve all expense transactions within the specified date range
     SELECT
         e.transaction_id,
         e.expense_type,
         e.amount,
         e.transaction_date
-    FROM expenses e
-    WHERE e.transaction_date BETWEEN :startDate AND :endDate
+    FROM acc_expenses e
+    WHERE e.transaction_date BETWEEN '2025-01-01' AND '2025-01-10'
 ),
 ExpenseSummary AS (
     -- Step 2: Group the expenses by type and calculate the total expense amount

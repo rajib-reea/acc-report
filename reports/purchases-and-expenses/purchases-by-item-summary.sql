@@ -1,3 +1,9 @@
+| item_id | total_purchases | total_quantity |
+|---------|------------------|----------------|
+| 1       | 610.00           | 58             |
+| 2       | 720.00           | 22             |
+| 3       | 690.00           | 41             |
+
 Algorithm:
   
 Purchases_by_Item_Summary(startDate, endDate):
@@ -11,11 +17,15 @@ Purchases_by_Item_Summary(startDate, endDate):
 
 
 SQL:
--- Define the date parameters
-\set startDate '2025-01-01'
-\set endDate '2025-12-31'
-
-WITH Purchases AS (
+  WITH DateSeries AS (
+    -- Generate a series of dates from startDate to endDate to ensure daily records
+    SELECT generate_series(
+        '2025-01-01'::DATE, 
+        '2025-01-10'::DATE, 
+        INTERVAL '1 day'
+    )::DATE AS transaction_date
+),
+Purchases AS (
     -- Step 1: Retrieve all purchase transactions within the specified date range
     SELECT
         p.transaction_id,
@@ -23,8 +33,8 @@ WITH Purchases AS (
         p.purchase_amount,
         p.quantity,
         p.transaction_date
-    FROM purchases p
-    WHERE p.transaction_date BETWEEN :startDate AND :endDate
+    FROM acc_purchases p
+    WHERE p.transaction_date BETWEEN '2025-01-01' AND '2025-12-31'
 ),
 ItemPurchases AS (
     -- Step 2: Group the purchases by item and calculate the total purchase amount

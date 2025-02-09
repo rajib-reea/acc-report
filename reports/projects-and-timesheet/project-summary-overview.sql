@@ -1,3 +1,9 @@
+| #  | project_id | project_name  | total_cost | total_revenue | total_hours_worked | total_profit |
+|----|------------|---------------|------------|----------------|---------------------|--------------|
+| 1  | 1          | Project Alpha | 1300.00    | 8000.00        | 0                   | 6700.00      |
+| 2  | 3          | Project Gamma | 1400.00    | 5600.00        | 0                   | 4200.00      |
+| 3  | 2          | Project Beta  | 1150.00    | 3900.00        | 0                   | 2750.00      |
+
 Algorithm:
   
 Project_Summary_Overview(startDate, endDate):
@@ -12,52 +18,64 @@ Project_Summary_Overview(startDate, endDate):
   8. Store the project summary data and return the results (overview of all projects).
 
 SQL:
--- Step 1: Retrieve all projects within the specified date range
-WITH project_data AS (
+
+  -- Step 1: Generate daily date series for the specified date range
+WITH DateSeries AS (
+    SELECT generate_series('2025-01-01'::DATE, '2025-01-10'::DATE, INTERVAL '1 day')::DATE AS transaction_date
+),
+
+-- Step 2: Retrieve all projects within the specified date range
+project_data AS (
     SELECT
         p.project_id,
         p.project_name,
         p.start_date,
         p.end_date
-    FROM projects p
-    WHERE p.start_date BETWEEN :startDate AND :endDate
+    FROM acc_projects p
+    WHERE p.start_date BETWEEN '2025-01-01' AND '2025-01-10'
 ),
 
--- Step 2: Retrieve project-related data (cost, revenue, hours worked)
-project_cost_revenue AS (
+-- Step 3: Retrieve project-related revenue data
+project_revenue_data AS (
     SELECT
         pr.project_id,
-        prc.total_cost,
-        pr.client_rate
-    FROM projects_revenue pr
-    JOIN projects_costs prc ON pr.project_id = prc.project_id
+        SUM(pr.amount) AS total_revenue  -- Summing up all revenue types (e.g., 'Billable Hours', 'Flat Fee', etc.)
+    FROM acc_project_revenues pr
+    GROUP BY pr.project_id
 ),
 
--- Step 3: Calculate total hours worked per project
+-- Step 4: Retrieve project-related cost data
+project_cost_data AS (
+    SELECT
+        prc.project_id,
+        SUM(prc.amount) AS total_cost  -- Summing up all costs (Labor, Material, Overhead, etc.)
+    FROM acc_project_costs prc
+    GROUP BY prc.project_id
+),
+
+-- Step 5: Calculate total hours worked per project (assuming timesheet_entries table exists and is used for hours worked)
 project_hours AS (
     SELECT
         te.project_id,
         SUM(te.hours_worked) AS total_hours_worked
-    FROM timesheet_entries te
-    WHERE te.entry_date BETWEEN :startDate AND :endDate
+    FROM acc_timesheets te
+    WHERE te.entry_date BETWEEN '2025-01-01' AND '2025-01-10'
     GROUP BY te.project_id
 )
 
--- Step 4: Calculate total cost, revenue, and profit
+-- Step 6: Combine all data and calculate total cost, total revenue, and profit
 SELECT
     pd.project_id,
     pd.project_name,
-    COALESCE(prc.total_cost, 0) AS total_cost,
-    COALESCE(prc.client_rate, 0) * COALESCE(th.total_hours_worked, 0) AS total_revenue,
-    COALESCE(th.total_hours_worked, 0) AS total_hours_worked,
-    -- Step 5: Calculate profitability (revenue - cost)
-    (COALESCE(prc.client_rate, 0) * COALESCE(th.total_hours_worked, 0)) - COALESCE(prc.total_cost, 0) AS total_profit
-
+    COALESCE(pcd.total_cost, 0) AS total_cost,  -- Get total cost from project_cost_data CTE
+    COALESCE(prd.total_revenue, 0) AS total_revenue,  -- Get total revenue from project_revenue_data CTE
+    COALESCE(ph.total_hours_worked, 0) AS total_hours_worked,
+    -- Step 7: Calculate profitability (revenue - cost)
+    COALESCE(prd.total_revenue, 0) - COALESCE(pcd.total_cost, 0) AS total_profit
 FROM project_data pd
-LEFT JOIN project_cost_revenue prc ON pd.project_id = prc.project_id
-LEFT JOIN project_hours th ON pd.project_id = th.project_id
+LEFT JOIN project_revenue_data prd ON pd.project_id = prd.project_id
+LEFT JOIN project_cost_data pcd ON pd.project_id = pcd.project_id
+LEFT JOIN project_hours ph ON pd.project_id = ph.project_id
 
--- Step 6: Optional - Group by project to get the overall total project costs, revenue, and profits
+-- Step 8: Optional - Group by project to get the overall total project costs, revenue, and profits
 ORDER BY total_profit DESC;
-
--- Step 7: Validate the data to ensure no invalid or missing values

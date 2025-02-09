@@ -4,6 +4,7 @@
 | 2  | 3          | Project Gamma | 1400.00    | 5600.00        | 0                   | 4200.00      |
 | 3  | 2          | Project Beta  | 1150.00    | 3900.00        | 0                   | 2750.00      |
 
+
 Algorithm:
   
 Project_Summary_Overview(startDate, endDate):

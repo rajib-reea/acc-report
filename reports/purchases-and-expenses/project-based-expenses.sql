@@ -1,3 +1,9 @@
+| project_id | total_project_expenses | num_transactions |
+|------------|------------------------|------------------|
+| 101        | 820.00                 | 5                |
+| 102        | 1060.00                | 4                |
+| 103        | 1180.00                | 4                |
+
 Algorithm:
   
 Project_Based_Expenses_Report(startDate, endDate):
@@ -10,19 +16,23 @@ Project_Based_Expenses_Report(startDate, endDate):
   6. Store the project-based expense data and return the results.
 
 SQL:
--- Define the date parameters
-\set startDate '2025-01-01'
-\set endDate '2025-12-31'
-
-WITH ProjectExpenses AS (
-    -- Step 1: Retrieve all expense transactions within the specified date range that are linked to specific projects
+  WITH DateSeries AS (
+    -- Generate a series of dates from '2025-01-01' to '2025-01-10' to ensure daily records
+    SELECT generate_series(
+        '2025-01-01'::DATE, 
+        '2025-01-10'::DATE, 
+        INTERVAL '1 day'
+    )::DATE AS transaction_date
+),
+ProjectExpenses AS (
+    -- Step 1: Retrieve all expense transactions within the specified date range and linked to specific projects
     SELECT
         e.transaction_id,
         e.project_id,
         e.amount,
         e.transaction_date
-    FROM expenses e
-    WHERE e.transaction_date BETWEEN :startDate AND :endDate
+    FROM acc_expenses e
+    WHERE e.transaction_date BETWEEN '2025-01-01' AND '2025-01-10' -- Ensure the expense is linked to the given date range
       AND e.project_id IS NOT NULL -- Ensure the expense is linked to a project
 ),
 ProjectExpenseSummary AS (

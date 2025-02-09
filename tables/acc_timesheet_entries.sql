@@ -1,4 +1,4 @@
-CREATE TABLE acc_timesheet_entries (
+CREATE TABLE acc_timesheet (
     entry_id SERIAL PRIMARY KEY,
     employee_id INT NOT NULL,
     project_id INT NOT NULL,
@@ -8,7 +8,7 @@ CREATE TABLE acc_timesheet_entries (
     is_billable BOOLEAN DEFAULT TRUE
 );
 -- Sample data for January 2025
-INSERT INTO acc_timesheet_entries (employee_id, project_id, task_id, hours_worked, entry_date, is_billable) VALUES
+INSERT INTO acc_timesheet (employee_id, project_id, task_id, hours_worked, entry_date, is_billable) VALUES
 (1, 101, 1001, 8.00, '2025-01-01', TRUE),
 (1, 101, 1002, 4.00, '2025-01-02', FALSE),
 (1, 102, 1003, 6.50, '2025-01-03', TRUE),

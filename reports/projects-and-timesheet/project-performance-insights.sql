@@ -36,6 +36,7 @@ Project_Performance_Insights(startDate, endDate):
   7. Store the project performance data and return the results (performance insights by project, employee, or department).
 
 SQL:
+  
 WITH DateSeries AS (
     -- Generate a series of dates between 2025-01-01 and 2025-01-10 (daily intervals)
     SELECT generate_series('2025-01-01'::DATE, '2025-01-10'::DATE, INTERVAL '1 day')::DATE AS transaction_date
@@ -64,7 +65,7 @@ project_cost_revenue AS (
         SUM(CASE WHEN pr.revenue_type = 'Milestone Payment' THEN pr.amount ELSE 0 END) AS total_milestone_revenue,
         SUM(CASE WHEN pr.revenue_type = 'Labor Cost' THEN pr.amount ELSE 0 END) AS total_labor_cost,
         SUM(CASE WHEN pr.revenue_type = 'Material Cost' THEN pr.amount ELSE 0 END) AS total_material_cost
-    FROM project_revenues pr
+    FROM acc_project_revenues pr
     WHERE pr.project_id IN (SELECT project_id FROM project_data)
     GROUP BY pr.project_id
 ),

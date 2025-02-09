@@ -17,8 +17,42 @@ INSERT INTO acc_projects (project_name, start_date, end_date, planned_completion
 ('Project Beta', '2025-01-03', '2025-01-08', '2025-01-07', '2025-01-08'),
 ('Project Gamma', '2025-01-02', '2025-01-10', '2025-01-09', '2025-01-10');
 
+-- Drop the project_revenues table if it exists
+DROP TABLE IF EXISTS project_revenues;
 
-drop table if exists project_costs;
+-- Create project_revenues table to store revenue data related to each project
+CREATE TABLE project_revenues (
+    revenue_id SERIAL PRIMARY KEY,
+    project_id INT NOT NULL,
+    revenue_type VARCHAR(50) NOT NULL,  -- 'Billable Hours', 'Flat Fee', 'Milestone Payment', etc.
+    amount DECIMAL(10, 2) NOT NULL,     -- Revenue amount for the respective type
+    FOREIGN KEY (project_id) REFERENCES acc_projects(project_id)
+);
+
+-- Insert sample data into project_revenues
+INSERT INTO project_revenues (project_id, revenue_type, amount) VALUES
+-- For Project Alpha
+(1, 'Billable Hours', 1500.00),
+(1, 'Flat Fee', 2000.00),
+(1, 'Milestone Payment', 3000.00),
+(1, 'Labor Cost', 1000.00),
+(1, 'Material Cost', 500.00),
+-- For Project Beta
+(2, 'Billable Hours', 800.00),
+(2, 'Flat Fee', 1200.00),
+(2, 'Milestone Payment', 1000.00),
+(2, 'Labor Cost', 600.00),
+(2, 'Material Cost', 300.00),
+-- For Project Gamma
+(3, 'Billable Hours', 1000.00),
+(3, 'Flat Fee', 1500.00),
+(3, 'Milestone Payment', 2000.00),
+(3, 'Labor Cost', 700.00),
+(3, 'Material Cost', 400.00);
+
+-- Drop the project_costs table if it exists
+DROP TABLE IF EXISTS project_costs;
+
 -- Create project_costs table
 CREATE TABLE project_costs (
     cost_id SERIAL PRIMARY KEY,

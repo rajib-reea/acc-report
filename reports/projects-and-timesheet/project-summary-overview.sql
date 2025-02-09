@@ -5,6 +5,7 @@
 | 3  | 2          | Project Beta  | 1150.00    | 3900.00        | 0                   | 2750.00      |
 
 
+
 Algorithm:
   
 Project_Summary_Overview(startDate, endDate):

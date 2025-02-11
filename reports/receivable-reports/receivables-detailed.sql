@@ -1,3 +1,14 @@
+| customer_id | invoice_id | invoice_amount | remaining_balance | aging_category | due_date   | total_paid |
+|-------------|------------|----------------|-------------------|----------------|------------|------------|
+| 101         | 1001       | 5000.00        | 3000.00           | 0-30 days      | 2025-01-15 | 2000.00    |
+| 101         | 1003       | 4500.00        | 3000.00           | Not Due        | 2025-03-05 | 1500.00    |
+| 101         | 1007       | 4000.00        | 3000.00           | Not Due        | 2025-07-15 | 1000.00    |
+| 102         | 1002       | 3000.00        | 2000.00           | 0-30 days      | 2025-02-10 | 1000.00    |
+| 102         | 1010       | 5000.00        | 5000.00           | Not Due        | 2025-10-15 | 0.00       |
+| 103         | 1004       | 2000.00        | 1500.00           | Not Due        | 2025-04-01 | 500.00     |
+| 103         | 1008       | 3500.00        | 1500.00           | Not Due        | 2025-08-25 | 2000.00    |
+| 104         | 1005       | 6000.00        | 3000.00           | Not Due        | 2025-05-20 | 3000.00    |
+
 Algorithm:
   
 Receivables_Detailed_Report(startDate, endDate):
@@ -10,11 +21,15 @@ Receivables_Detailed_Report(startDate, endDate):
   7. Store the detailed receivables data for each customer and return the results.
 
 SQL:
--- Define the date parameters
-\set startDate '2025-01-01'
-\set endDate '2025-12-31'
-
-WITH OutstandingInvoices AS (
+  WITH DateSeries AS (
+    -- Generate a series of dates from startDate to endDate to ensure daily records
+    SELECT generate_series(
+        '2025-01-01'::DATE, 
+        '2025-12-31'::DATE, 
+        INTERVAL '1 day'
+    )::DATE AS transaction_date
+),
+OutstandingInvoices AS (
     -- Step 1: Retrieve all receivables transactions within the specified date range
     SELECT
         ar.customer_id,
@@ -23,9 +38,9 @@ WITH OutstandingInvoices AS (
         ar.due_date,
         ar.total_amount - COALESCE(p.payment_amount, 0) AS outstanding_balance,
         ar.total_amount - COALESCE(p.payment_amount, 0) AS remaining_balance
-    FROM accounts_receivable ar
-    LEFT JOIN payments p ON ar.invoice_id = p.invoice_id
-    WHERE ar.due_date BETWEEN :startDate AND :endDate
+    FROM acc_receivables ar
+    LEFT JOIN acc_payments p ON ar.invoice_id = p.invoice_id
+    WHERE ar.due_date BETWEEN '2025-01-01' AND '2025-12-31'
     AND ar.total_amount - COALESCE(p.payment_amount, 0) > 0 -- Only include outstanding invoices
 ),
 AgingBreakdown AS (
@@ -66,3 +81,4 @@ SELECT
     (r.invoice_amount - r.remaining_balance) AS total_paid
 FROM ReceivablesDetailedReport r
 ORDER BY r.customer_id, r.due_date;
+

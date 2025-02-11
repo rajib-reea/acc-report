@@ -1,5 +1,14 @@
+| customer_id | invoice_id | aging_category | total_invoice_amount | max_days_outstanding |
+|-------------|------------|----------------|-----------------------|----------------------|
+| 101         | 1001       | 31-60 days     | 1500.00               | 41                   |
+| 101         | 1003       | 31-60 days     | 2500.00               | 39                   |
+| 101         | 1008       | 31-60 days     | 1800.00               | 34                   |
+| 101         | 1010       | 31-60 days     | 3000.00               | 32                   |
+| 102         | 1005       | 31-60 days     | 1000.00               | 37                   |
+
 Algorithm:
-Detailed_AR_Aging_Report(startDate, endDate):
+
+  Detailed_AR_Aging_Report(startDate, endDate):
   1. Retrieve accounts receivable (AR) transactions within the specified date range (startDate to endDate).
   2. Group the transactions by customer.
   3. For each customer, retrieve their outstanding invoices.
@@ -10,21 +19,26 @@ Detailed_AR_Aging_Report(startDate, endDate):
   7. Store detailed AR aging data for each customer and return the results.
 
 SQL:
--- Define the date parameters
-\set startDate '2025-01-01'
-\set endDate '2025-12-31'
 
-WITH ARTransactions AS (
+  WITH DateSeries AS (
+    -- Generate a series of dates from startDate to endDate to ensure daily records
+    SELECT generate_series(
+        '2025-01-01'::DATE, 
+        '2025-12-31'::DATE, 
+        INTERVAL '1 day'
+    )::DATE AS transaction_date
+),
+ARTransactions AS (
     -- Step 1: Retrieve accounts receivable (AR) transactions within the specified date range
     SELECT 
-        customer_id,  -- Replace with the appropriate column for customer identification
-        invoice_id,   -- Assuming each AR transaction is linked to an invoice
+        customer_id,
+        invoice_id,
         transaction_date,
-        amount,  -- The amount for each AR transaction (can be adjusted depending on how amounts are stored)
-        (CURRENT_DATE - transaction_date) AS days_outstanding  -- Calculate the number of days outstanding
+        amount,
+        (CURRENT_DATE - transaction_date) AS days_outstanding
     FROM acc_transactions
     WHERE transaction_type = 'revenue' -- Only revenue transactions are considered as AR
-      AND transaction_date BETWEEN :startDate AND :endDate
+      AND transaction_date BETWEEN '2025-01-01' AND '2025-12-31'
       AND is_active = TRUE
 ),
 AgingCategories AS (
@@ -39,7 +53,7 @@ AgingCategories AS (
             WHEN days_outstanding > 90 THEN '91+ days'
             ELSE 'Invalid'  -- Catch any unexpected values (e.g., negative days)
         END AS aging_category,
-        amount,  -- Use the individual transaction amount as it relates to the invoice
+        amount,
         days_outstanding
     FROM ARTransactions
 ),
@@ -50,7 +64,7 @@ InvoiceAging AS (
         invoice_id,
         aging_category,
         SUM(amount) AS total_invoice_amount,
-        MAX(days_outstanding) AS max_days_outstanding  -- Get the max days for each invoice
+        MAX(days_outstanding) AS max_days_outstanding
     FROM AgingCategories
     GROUP BY customer_id, invoice_id, aging_category
 ),
@@ -60,7 +74,8 @@ ValidatedAging AS (
         customer_id,
         invoice_id,
         aging_category,
-        total_invoice_amount
+        total_invoice_amount,
+        max_days_outstanding  -- Include max_days_outstanding here
     FROM InvoiceAging
     WHERE total_invoice_amount >= 0  -- Ensure no negative amounts
 )

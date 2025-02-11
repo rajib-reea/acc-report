@@ -1,5 +1,13 @@
+| #   | customer_id | total_quoted_amount | total_invoiced_amount | total_quotes | converted_quotes | conversion_percentage |
+|-----|-------------|---------------------|------------------------|--------------|------------------|-----------------------|
+| 1   | 101         | 35200.00            | 35200.00               | 16           | 16               | 100.00                |
+| 2   | 102         | 6400.00             | 6400.00                | 4            | 4                | 100.00                |
+| 3   | 103         | 8600.00             | 8600.00                | 4            | 4                | 100.00                |
+| 4   | 104         | 6600.00             | 6600.00                | 4            | 4                | N/A                   |
+
 Algorithm:
-Quote_Analysis_Report(startDate, endDate):
+
+  Quote_Analysis_Report(startDate, endDate):
   1. Retrieve all quotes generated within the specified date range (startDate to endDate).
   2. Group the quotes by customer.
   3. For each quote, calculate the total quoted amount.
@@ -9,27 +17,32 @@ Quote_Analysis_Report(startDate, endDate):
   7. Store the quote analysis data and return the results.
 
   SQL:
--- Define the date parameters
-\set startDate '2025-01-01'
-\set endDate '2025-12-31'
 
-WITH QuoteData AS (
+WITH DateSeries AS (
+    -- Generate a series of dates from startDate to endDate to ensure daily records
+    SELECT generate_series(
+        '2025-01-01'::DATE, 
+        '2025-12-31'::DATE, 
+        INTERVAL '1 day'
+    )::DATE AS transaction_date
+),
+QuoteData AS (
     -- Step 1: Retrieve all quotes within the specified date range
     SELECT
         q.customer_id,
         q.quote_id,
         q.total_amount AS quoted_amount
-    FROM quotes q
-    WHERE q.created_at BETWEEN :startDate AND :endDate
+    FROM acc_quotes q
+    WHERE q.created_at BETWEEN '2025-01-01' AND '2025-12-31'
 ),
 InvoiceData AS (
     -- Step 4: Retrieve sales invoices that are linked to quotes
     SELECT 
         i.customer_id,
-        i.quote_id,
+        -- Add the correct field that links invoices to quotes
         i.total_amount AS invoiced_amount
-    FROM invoices i
-    WHERE i.created_at BETWEEN :startDate AND :endDate
+    FROM acc_invoices i
+    WHERE i.created_at BETWEEN '2025-01-01' AND '2025-12-31'
 ),
 QuoteInvoiceComparison AS (
     -- Step 3: Compare quoted amounts with invoiced amounts and calculate the conversion rate
@@ -44,7 +57,7 @@ QuoteInvoiceComparison AS (
             ELSE 0
         END AS conversion_rate -- Quote-to-Invoice conversion rate
     FROM QuoteData qd
-    LEFT JOIN InvoiceData id ON qd.quote_id = id.quote_id
+    LEFT JOIN InvoiceData id ON qd.customer_id = id.customer_id -- Adjusted join condition
 ),
 CustomerQuoteAnalysis AS (
     -- Step 5: Calculate the percentage of quotes converted to invoices for each customer
@@ -72,3 +85,4 @@ SELECT
     conversion_percentage
 FROM CustomerQuoteAnalysis
 ORDER BY customer_id;
+

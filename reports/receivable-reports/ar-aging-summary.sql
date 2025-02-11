@@ -1,3 +1,8 @@
+| #   | Customer ID | Aging Category | Total Amount |
+|-----|-------------|----------------|--------------|
+| 1   | 101         | 31-60 days     | 8800.00      |
+| 2   | 102         | 31-60 days     | 1000.00      |
+
 Algorithm:
   
   AR_Aging_Summary_Report(startDate, endDate):
@@ -10,24 +15,29 @@ Algorithm:
   6. Store the report by customer and aging category and return the results.
 
   SQL:
--- Define the date parameters
-\set startDate '2025-01-01'
-\set endDate '2025-12-31'
-
-WITH ARTransactions AS (
-    -- Step 1: Retrieve accounts receivable transactions within the specified date range
+  
+WITH DateSeries AS (
+    -- Generate a series of dates from startDate to endDate to ensure daily records
+    SELECT generate_series(
+        '2025-01-01'::DATE, 
+        '2025-01-10'::DATE, 
+        INTERVAL '1 day'
+    )::DATE AS transaction_date
+),
+ARTransactions AS (
+    -- Step 1: Retrieve AR transactions within the specified date range
     SELECT 
-        customer_id,  -- Replace with the appropriate column for customer identification
+        customer_id,  
         transaction_date,
-        amount,  -- The amount for each AR transaction
-        (CURRENT_DATE - transaction_date) AS days_outstanding  -- Calculate the number of days outstanding
+        amount,  
+        (CURRENT_DATE - transaction_date) AS days_outstanding  
     FROM acc_transactions
-    WHERE transaction_type = 'revenue' -- Accounts receivable are typically revenue transactions
-      AND transaction_date BETWEEN :startDate AND :endDate
+    WHERE transaction_type = 'revenue'  
+      AND transaction_date BETWEEN '2025-01-01' AND '2025-12-31'
       AND is_active = TRUE
 ),
 AgingCategories AS (
-    -- Step 3: Group AR balances into aging categories based on the number of days outstanding
+    -- Step 3: Group AR balances into aging categories
     SELECT 
         customer_id,
         CASE
@@ -35,22 +45,22 @@ AgingCategories AS (
             WHEN days_outstanding BETWEEN 31 AND 60 THEN '31-60 days'
             WHEN days_outstanding BETWEEN 61 AND 90 THEN '61-90 days'
             WHEN days_outstanding > 90 THEN '91+ days'
-            ELSE 'Invalid'  -- This can catch any unexpected data (e.g., negative days)
+            ELSE 'Invalid'  
         END AS aging_category,
-        SUM(amount) AS total_amount  -- Calculate the total AR amount in each category
+        SUM(amount) AS total_amount  
     FROM ARTransactions
     GROUP BY customer_id, aging_category
 ),
 ValidatedAging AS (
-    -- Step 5: Validate the amounts (exclude negative or invalid balances)
+    -- Step 5: Validate the amounts
     SELECT 
         customer_id,
         aging_category,
         total_amount
     FROM AgingCategories
-    WHERE total_amount >= 0  -- Only include valid balances (no negative amounts)
+    WHERE total_amount >= 0  
 )
--- Step 6: Store and return the report by customer and aging category
+-- Step 6: Return the report
 SELECT 
     customer_id,
     aging_category,
@@ -62,5 +72,5 @@ ORDER BY customer_id,
              WHEN aging_category = '31-60 days' THEN 2
              WHEN aging_category = '61-90 days' THEN 3
              WHEN aging_category = '91+ days' THEN 4
-             ELSE 5  -- Handling 'Invalid' category if any
+             ELSE 5  
          END;

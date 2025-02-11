@@ -1,5 +1,17 @@
+| customer_id | total_invoices | total_billed_amount | total_outstanding_balance | overdue_invoices | overdue_balance | average_amount_per_invoice | trend_month | monthly_invoices |
+|-------------|----------------|---------------------|---------------------------|------------------|-----------------|----------------------------|-------------|------------------|
+| 101         | 3              | 13500.00            | 10500.00                  |                  | 4500.00         | 1                          | 1           | 1                |
+| 101         | 3              | 13500.00            | 10500.00                  |                  | 4500.00         | 3                          | 1           | 1                |
+| 101         | 3              | 13500.00            | 10500.00                  |                  | 4500.00         | 7                          | 1           | 1                |
+| 102         | 2              | 8000.00             | 7000.00                   |                  | 4000.00         | 2                          | 1           | 1                |
+| 102         | 2              | 8000.00             | 7000.00                   |                  | 4000.00         | 10                         | 1           | 1                |
+| 103         | 2              | 5500.00             | 3000.00                   |                  | 2750.00         | 4                          | 1           | 1                |
+| 103         | 2              | 5500.00             | 3000.00                   |                  | 2750.00         | 8                          | 1           | 1                |
+| 104         | 1              | 6000.00             | 3000.00                   |                  | 6000.00         | 5                          | 1           | 1                |
+
 Algorithm:
-Recurring_Invoice_Insights(startDate, endDate):
+
+  Recurring_Invoice_Insights(startDate, endDate):
   1. Retrieve all recurring invoice transactions within the specified date range (startDate to endDate).
   2. Group the recurring invoices by customer.
   3. For each customer, retrieve all recurring invoices issued within the date range.
@@ -16,11 +28,15 @@ Recurring_Invoice_Insights(startDate, endDate):
   12. Store the insights data (billed amount, number of invoices, outstanding balances, etc.) and return the results.
 
 SQL:
--- Define the date parameters
-\set startDate '2025-01-01'
-\set endDate '2025-12-31'
-
-WITH RecurringInvoices AS (
+  WITH DateSeries AS (
+    -- Generate a series of dates from startDate to endDate to ensure daily records
+    SELECT generate_series(
+        '2025-01-01'::DATE, 
+        '2025-12-31'::DATE, 
+        INTERVAL '1 day'
+    )::DATE AS transaction_date
+),
+RecurringInvoices AS (
     -- Step 1: Retrieve all recurring invoice transactions within the specified date range
     SELECT
         ri.invoice_id,
@@ -30,8 +46,8 @@ WITH RecurringInvoices AS (
         ri.amount AS billed_amount,
         ri.status,  -- Invoice status (e.g., 'Paid', 'Unpaid', 'Overdue')
         ri.outstanding_balance
-    FROM recurring_invoices ri
-    WHERE ri.invoice_date BETWEEN :startDate AND :endDate
+    FROM acc_recurring_invoices ri
+    WHERE ri.invoice_date BETWEEN '2025-01-01' AND '2025-12-31'
 ),
 CustomerInvoices AS (
     -- Step 2: Group the recurring invoices by customer and calculate total billed amount
@@ -66,7 +82,7 @@ AverageInvoice AS (
     -- Step 8: Calculate the average amount per recurring invoice for each customer
     SELECT
         customer_id,
-        SUM(billed_amount) / COUNT(invoice_id) AS average_amount_per_invoice
+        ROUND(SUM(billed_amount) / COUNT(invoice_id), 2) AS average_amount_per_invoice
     FROM RecurringInvoices
     GROUP BY customer_id
 )
@@ -74,10 +90,10 @@ AverageInvoice AS (
 SELECT
     ci.customer_id,
     ci.total_invoices,
-    ci.total_billed_amount,
-    ci.total_outstanding_balance,
+    ROUND(ci.total_billed_amount, 2) AS total_billed_amount,
+    ROUND(ci.total_outstanding_balance, 2) AS total_outstanding_balance,
     oi.overdue_invoices,
-    oi.overdue_balance,
+    ROUND(oi.overdue_balance, 2) AS overdue_balance,
     ai.average_amount_per_invoice,
     ti.month AS trend_month,
     ti.monthly_invoices

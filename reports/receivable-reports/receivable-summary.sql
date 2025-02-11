@@ -1,5 +1,13 @@
+| customer_id | total_outstanding_balance | age_0_30_days | age_31_60_days | age_61_90_days | age_91_plus_days | overall_outstanding_receivables |
+|-------------|----------------------------|---------------|----------------|----------------|------------------|---------------------------------|
+| 101         | 9000.00                    | 3000.00       | 0              | 0              | 0                | 22000.00                        |
+| 102         | 7000.00                    | 2000.00       | 0              | 0              | 0                | 22000.00                        |
+| 103         | 3000.00                    | 0             | 0              | 0              | 0                | 22000.00                        |
+| 104         | 3000.00                    | 0             | 0              | 0              | 0                | N/A                             |
+
 Algorithm:
-Receivables_Summary_Report(startDate, endDate):
+
+  Receivables_Summary_Report(startDate, endDate):
   1. Retrieve all receivables transactions within the specified date range (startDate to endDate).
   2. Group the transactions by customer.
   3. Calculate the total outstanding receivables for each customer.
@@ -9,11 +17,15 @@ Receivables_Summary_Report(startDate, endDate):
   7. Store the summary of receivables and return the results.\
 
   SQL:
--- Define the date parameters
-\set startDate '2025-01-01'
-\set endDate '2025-12-31'
-
-WITH OutstandingReceivables AS (
+  WITH DateSeries AS (
+    -- Generate a series of dates from startDate to endDate to ensure daily records
+    SELECT generate_series(
+        '2025-01-01'::DATE, 
+        '2025-12-31'::DATE, 
+        INTERVAL '1 day'
+    )::DATE AS transaction_date
+),
+OutstandingReceivables AS (
     -- Step 1: Retrieve all receivables transactions within the specified date range
     SELECT
         ar.customer_id,
@@ -21,9 +33,9 @@ WITH OutstandingReceivables AS (
         ar.total_amount AS receivable_amount,
         ar.due_date,
         ar.total_amount - COALESCE(p.payment_amount, 0) AS outstanding_balance
-    FROM accounts_receivable ar
-    LEFT JOIN payments p ON ar.invoice_id = p.invoice_id
-    WHERE ar.due_date BETWEEN :startDate AND :endDate
+    FROM acc_receivables ar
+    LEFT JOIN acc_payments p ON ar.invoice_id = p.invoice_id
+    WHERE ar.due_date BETWEEN '2025-01-01' AND '2025-12-31'
 ),
 AgingBreakdown AS (
     -- Step 4: Optionally calculate the aging of receivables for each customer
@@ -68,3 +80,4 @@ SELECT
 FROM ReceivablesSummary rs
 JOIN AgingBreakdown ab ON rs.customer_id = ab.customer_id
 ORDER BY rs.customer_id;
+

@@ -1,4 +1,4 @@
-drop table if exists acc_products casacde;
+drop table if exists acc_products cascade;
 CREATE TABLE acc_products (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
@@ -8,7 +8,7 @@ CREATE TABLE acc_products (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-drop table if exists acc_inventory casacde;
+drop table if exists acc_inventory cascade;
 CREATE TABLE acc_inventory (
     id SERIAL PRIMARY KEY,
     product_id INT REFERENCES acc_products(id),
@@ -18,7 +18,7 @@ CREATE TABLE acc_inventory (
     received_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-drop table if exists acc_sales casacde;
+drop table if exists acc_sales cascade;
 CREATE TABLE acc_sales (
     id SERIAL PRIMARY KEY,
     product_id INT REFERENCES acc_products(id),
@@ -27,7 +27,7 @@ CREATE TABLE acc_sales (
     sale_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-drop table if exists acc_purchases casacde;
+drop table if exists acc_purchases cascade;
 CREATE TABLE acc_purchases (
     id SERIAL PRIMARY KEY,
     product_id INT REFERENCES acc_products(id),
@@ -36,7 +36,7 @@ CREATE TABLE acc_purchases (
     purchase_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-drop table if exists acc_purchase_orders  casacde;
+drop table if exists acc_purchase_orders  cascade;
 CREATE TABLE acc_purchase_orders (
     id SERIAL PRIMARY KEY,
     product_id INT REFERENCES acc_products(id),

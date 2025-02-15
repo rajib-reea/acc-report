@@ -1,3 +1,3 @@
-CREATE DATABASE mydatabase;
-CREATE USER myuser WITH PASSWORD 'mypassword';
-GRANT ALL PRIVILEGES ON DATABASE mydatabase TO myuser;
+CREATE DATABASE acc_report_app;
+CREATE USER acc_report_app WITH PASSWORD 'acc_report_app';
+GRANT ALL PRIVILEGES ON DATABASE acc_report_app TO acc_report_app;
